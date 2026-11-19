@@ -47,7 +47,7 @@ export default function DashboardPage() {
         {/* Identité de l'entreprise */}
         <Card className="lg:col-span-2">
           <CardHeader className="flex-row items-center gap-4">
-            <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-accent font-display text-xl font-semibold text-accent-foreground">
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-accent font-display text-xl font-bold text-accent-foreground">
               ?
             </div>
             <div>
@@ -90,12 +90,12 @@ export default function DashboardPage() {
 
       {/* Emplacements KPI — aucun chiffre fictif en production */}
       <section className="mt-10" aria-labelledby="kpi-title">
-        <h2 id="kpi-title" className="mb-4 font-display text-xl font-semibold">
+        <h2 id="kpi-title" className="mb-4 font-display text-xl font-bold">
           Indicateurs
         </h2>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {kpiSlots.map((label) => (
-            <div key={label} className="rounded-xl border border-dashed border-cream-strong bg-card/60 p-5">
+            <div key={label} className="rounded-xl border border-dashed border-line-strong bg-card/60 p-5">
               <BarChart3 className="size-4 text-muted-foreground" />
               <p className="mt-3 text-sm font-medium">{label}</p>
               <p className="mt-1 text-xs text-muted-foreground">Disponible avec l&apos;agenda</p>
@@ -106,7 +106,7 @@ export default function DashboardPage() {
 
       {/* Accès rapide aux modules */}
       <section className="mt-10" aria-labelledby="modules-title">
-        <h2 id="modules-title" className="mb-4 font-display text-xl font-semibold">
+        <h2 id="modules-title" className="mb-4 font-display text-xl font-bold">
           Modules
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -114,7 +114,7 @@ export default function DashboardPage() {
             const Icon = item.icon;
             return (
               <Link key={item.key} href={item.href} className="group">
-                <Card className="h-full transition-colors group-hover:border-cream-strong group-hover:bg-ivory">
+                <Card className="h-full transition-colors group-hover:border-line-strong group-hover:bg-surface">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex size-10 items-center justify-center rounded-xl bg-secondary">

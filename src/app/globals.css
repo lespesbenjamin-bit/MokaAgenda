@@ -1,54 +1,55 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@fontsource-variable/manrope";
-@import "@fontsource-variable/fraunces";
+@import "@fontsource-variable/plus-jakarta-sans";
 
 /* ─────────────────────────────────────────────
-   Design system Moka
-   Blanc cassé · Crème · Terracotta · Anthracite
+   Design system Moka — direction « Blanc vif »
+   Blanc pur · Orange vif · Encre
    ───────────────────────────────────────────── */
 
 :root {
   /* Palette de marque */
-  --moka-ivory: #faf7f2;
-  --moka-cream: #f1e8da;
-  --moka-cream-strong: #e8dbc6;
-  --moka-terracotta: #b4532f; /* contraste AA sur blanc */
-  --moka-terracotta-hover: #9c4527;
-  --moka-terracotta-soft: #f6e4da;
-  --moka-anthracite: #2b2a28;
-  --moka-stone: #6f6a63;
-  --moka-line: #e6ddd0;
+  --moka-white: #ffffff;
+  --moka-surface: #fafafa; /* fonds secondaires */
+  --moka-line: #eeeeef;
+  --moka-line-strong: #e1e1e3;
+  --moka-orange: #ff6b2c; /* accent vif : logo, éléments actifs, touches */
+  --moka-orange-strong: #cc4a0c; /* boutons et texte orange : contraste AA sur blanc */
+  --moka-orange-hover: #b23f0a;
+  --moka-orange-soft: #fff1e8;
+  --moka-ink: #18181b;
+  --moka-gray: #71717a;
 
   /* Tokens sémantiques (convention shadcn/ui) */
-  --background: var(--moka-ivory);
-  --foreground: var(--moka-anthracite);
+  --background: var(--moka-white);
+  --foreground: var(--moka-ink);
   --card: #ffffff;
-  --card-foreground: var(--moka-anthracite);
-  --primary: var(--moka-terracotta);
-  --primary-hover: var(--moka-terracotta-hover);
+  --card-foreground: var(--moka-ink);
+  --primary: var(--moka-orange-strong);
+  --primary-hover: var(--moka-orange-hover);
   --primary-foreground: #ffffff;
-  --secondary: var(--moka-cream);
-  --secondary-foreground: var(--moka-anthracite);
-  --muted: var(--moka-cream);
-  --muted-foreground: var(--moka-stone);
-  --accent: var(--moka-terracotta-soft);
-  --accent-foreground: var(--moka-terracotta-hover);
+  --brand: var(--moka-orange);
+  --secondary: #f4f4f5;
+  --secondary-foreground: var(--moka-ink);
+  --muted: var(--moka-surface);
+  --muted-foreground: var(--moka-gray);
+  --accent: var(--moka-orange-soft);
+  --accent-foreground: #c2410c;
   --border: var(--moka-line);
-  --input: var(--moka-line);
-  --ring: var(--moka-terracotta);
-  --success: #3f6f4c;
-  --success-soft: #e3eee5;
-  --warning: #8a5a14;
-  --warning-soft: #f7ebd3;
-  --destructive: #a63d32;
+  --input: var(--moka-line-strong);
+  --ring: var(--moka-orange);
+  --success: #15803d;
+  --success-soft: #e9f7ee;
+  --warning: #a16207;
+  --warning-soft: #fef6e0;
+  --destructive: #dc2626;
 
   --radius: 1rem;
 }
 
 @theme inline {
-  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -72,11 +73,11 @@
   --color-warning-soft: var(--warning-soft);
   --color-destructive: var(--destructive);
 
-  --color-ivory: var(--moka-ivory);
-  --color-cream: var(--moka-cream);
-  --color-cream-strong: var(--moka-cream-strong);
-  --color-terracotta: var(--moka-terracotta);
-  --color-anthracite: var(--moka-anthracite);
+  --color-brand: var(--brand);
+  --color-surface: var(--moka-surface);
+  --color-line: var(--moka-line);
+  --color-line-strong: var(--moka-line-strong);
+  --color-ink: var(--moka-ink);
 
   --radius-sm: calc(var(--radius) - 8px);
   --radius-md: calc(var(--radius) - 4px);
@@ -95,7 +96,7 @@
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
-    font-feature-settings: "ss01", "cv11";
+    letter-spacing: -0.005em;
   }
   :focus-visible {
     outline: 2px solid var(--ring);

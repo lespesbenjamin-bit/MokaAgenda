@@ -19,19 +19,24 @@
 ## Choix techniques
 
 - **Next.js 16 sans Cache Components** : l'application est authentifiée et presque chaque écran dépend de la session ; le rendu dynamique classique est plus simple et évite de mettre en cache des données d'une entreprise par erreur.
-- **Polices auto-hébergées** (`@fontsource-variable`) : Manrope (interface) et Fraunces (titres). Aucun appel à Google Fonts.
+- **Polices auto-hébergées** (`@fontsource-variable`) : Plus Jakarta Sans (interface et titres). Aucun appel à Google Fonts.
 - **Composants style shadcn/ui** écrits dans `src/components/ui/` (`components.json` présent pour ajouter d'autres composants avec la CLI shadcn).
 
-## Design system
+## Design system — direction « Blanc vif »
 
 | Token | Valeur | Usage |
 |---|---|---|
-| Blanc cassé | `#FAF7F2` | Fond |
-| Crème | `#F1E8DA` | Surfaces secondaires |
-| Terracotta | `#B4532F` | Actions (contraste AA sur blanc) |
-| Anthracite | `#2B2A28` | Texte |
-| Pierre | `#6F6A63` | Texte secondaire |
+| Blanc | `#FFFFFF` | Fond principal |
+| Surface | `#FAFAFA` | Fonds secondaires |
+| Orange vif | `#FF6B2C` | Accent : logo, éléments actifs, touches de couleur |
+| Orange fort | `#CC4A0C` | Boutons et texte orange (contraste AA sur blanc) |
+| Orange doux | `#FFF1E8` | Fonds de badges et d'éléments actifs |
+| Encre | `#18181B` | Texte |
+| Gris | `#71717A` | Texte secondaire |
+| Police | Plus Jakarta Sans | Titres en gras, tracking serré |
 | Rayon | 16 px (cartes), pilule (boutons) | |
+
+L'orange vif n'est jamais utilisé comme fond d'un texte blanc de petite taille (contraste insuffisant) : les boutons utilisent l'orange fort.
 
 ## Feuille de route du Sprint 1
 

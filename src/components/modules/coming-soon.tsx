@@ -29,7 +29,7 @@ export function ComingSoon({ item }: { item: NavItem }) {
             <Icon className="size-7 text-primary" />
           </div>
           <div className="max-w-md">
-            <p className="font-display text-xl font-semibold">Ce module n&apos;est pas encore disponible</p>
+            <p className="font-display text-xl font-bold">Ce module n&apos;est pas encore disponible</p>
             <p className="mt-2 text-sm text-muted-foreground">
               Il sera livré dans un prochain sprint. Aucune donnée n&apos;est enregistrée ici pour le moment.
             </p>

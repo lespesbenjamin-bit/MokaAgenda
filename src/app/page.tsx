@@ -23,7 +23,7 @@ export default function HomePage() {
         <p className="mb-5 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
           Pour les professionnelles de la beauté
         </p>
-        <h1 className="max-w-3xl font-display text-4xl font-semibold leading-[1.08] tracking-tight sm:text-6xl">
+        <h1 className="max-w-4xl font-display text-4xl font-bold leading-[1.05] tracking-[-0.035em] sm:text-6xl">
           Vos rendez-vous, à domicile comme en institut.
         </h1>
         <p className="mt-6 max-w-xl text-lg text-muted-foreground">

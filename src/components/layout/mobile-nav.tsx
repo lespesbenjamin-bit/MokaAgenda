@@ -75,12 +75,12 @@ export function MobileNav() {
           <button
             type="button"
             aria-label="Fermer"
-            className="absolute inset-0 bg-anthracite/30 animate-in fade-in"
+            className="absolute inset-0 bg-ink/30 animate-in fade-in"
             onClick={() => setOpen(false)}
           />
           <div className="absolute inset-x-0 bottom-0 rounded-t-3xl bg-card p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-xl animate-in slide-in-from-bottom">
             <div className="mb-2 flex items-center justify-between px-2">
-              <p className="font-display text-lg font-semibold">Modules</p>
+              <p className="font-display text-lg font-bold">Modules</p>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
