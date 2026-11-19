@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT — Moka Réservation
 
 > Fichier de reprise : à fournir en début de toute nouvelle conversation Claude.
-> Dernière mise à jour : 19 novembre 2026 — fin du Sprint 1 (fiabilisation), Sprint 2 **non commencé**.
+> Dernière mise à jour : 19 novembre 2026 (soir) — Sprint 1 fusionné et en production, recette manuelle en cours. Sprint 2 **non commencé**.
 
 ## Le produit
 
@@ -27,8 +27,8 @@ Blanc `#FFFFFF`, surface `#FAFAFA`, orange vif `#FF6B2C` (accents), orange fort 
 
 | Élément | État |
 |---|---|
-| Socle, design, navigation responsive, pages « À venir » | ✅ en production (branche `main`) |
-| Schéma SQL + RLS + Storage | ✅ développé et testé (PostgreSQL local) — **à exécuter sur Supabase** |
+| Socle, design, navigation responsive, pages « À venir » | ✅ en production |
+| Schéma SQL + RLS + Storage | ✅ testé (PostgreSQL local) et exécuté sur Supabase |
 | Authentification complète | ✅ développée, testée hors Supabase réel — **recette manuelle à faire** |
 | Onboarding 5 étapes persistant + logo | ✅ développé, testé au niveau base — **recette manuelle à faire** |
 | Tableau de bord connecté | ✅ développé — **recette manuelle à faire** |
@@ -36,7 +36,18 @@ Blanc `#FFFFFF`, surface `#FAFAFA`, orange vif `#FF6B2C` (accents), orange fort 
 | Écran Paramètres (modification) | « À venir » (Sprint 2) |
 | Prestations, clientes, agenda, réservation, Stripe, tournées, finances, boutique | non commencés |
 
-Branche de travail : `sprint-1-5-fiabilisation` (pull request vers `main`).
+Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée sur https://moka-agenda.vercel.app.
+
+### Configuration réalisée (19/11)
+- Projet Supabase de production : **MokaAgenda** — migrations 1 et 2 exécutées.
+- Auth : *Confirm email* activé ; Site URL et Redirect URLs (`/auth/confirm`, `https://moka-agenda.vercel.app/**`, localhost) configurées.
+- Vercel (projet `moka-agenda`, équipe `coaching6`) : variables Supabase + `NEXT_PUBLIC_SITE_URL` ajoutées ; site vérifié en ligne (connexion sans alerte de configuration, pages privées redirigées).
+
+### Reste à faire avant le Sprint 2
+- [ ] Recette manuelle (`docs/SETUP.md` §4) : inscription → email → onboarding → reconnexion → second compte
+- [ ] Modèles d'emails personnalisés (reportés volontairement ; en attendant, ouvrir le lien de confirmation dans le même navigateur)
+- [ ] SMTP personnalisé avant ouverture aux clientes
+- [ ] Projets Supabase + Vercel de démonstration
 
 ## Où trouver quoi
 
