@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, CalendarCheck, Home, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
+import { isDemo } from "@/lib/env";
 
 const highlights = [
   { icon: Home, title: "À domicile", text: "Gérez vos déplacements et vos zones d'intervention." },
@@ -15,7 +16,7 @@ export default function HomePage() {
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-6 sm:px-8">
         <Logo />
         <Button asChild variant="outline" size="sm">
-          <Link href="/tableau-de-bord">Accéder à l&apos;espace pro</Link>
+          <Link href="/connexion">Se connecter</Link>
         </Button>
       </header>
 
@@ -31,10 +32,15 @@ export default function HomePage() {
         </p>
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
           <Button asChild size="lg">
-            <Link href="/tableau-de-bord">
-              Découvrir l&apos;espace pro <ArrowRight />
+            <Link href={isDemo ? "/connexion" : "/inscription"}>
+              {isDemo ? "Explorer la démo" : "Créer mon espace"} <ArrowRight />
             </Link>
           </Button>
+          {!isDemo && (
+            <Button asChild size="lg" variant="outline">
+              <Link href="/connexion">J&apos;ai déjà un compte</Link>
+            </Button>
+          )}
         </div>
 
         <ul className="mt-20 grid gap-4 sm:grid-cols-3">

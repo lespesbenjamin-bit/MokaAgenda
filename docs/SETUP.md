@@ -1,0 +1,72 @@
+# Mise en service — Supabase, Vercel, démo
+
+Procédure pas à pas. Rien ici ne supprime de données existantes : les migrations
+créent des tables neuves et **échouent** (sans rien écraser) si une table du même
+nom existe déjà. Utilisez des projets Supabase **dédiés** à Moka Réservation.
+
+## 1. Projet Supabase de production
+
+1. Créer un projet `moka-prod` (région Europe, ex. Paris `eu-west-3`).
+2. **SQL Editor** → coller et exécuter `supabase/migrations/20261119000001_sprint1_foundations.sql`, puis `…000002_storage_business_logos.sql` (dans cet ordre).
+3. **Authentication → Sign In / Providers → Email** : *Confirm email* activé ; longueur minimale du mot de passe : 8.
+4. **Authentication → URL Configuration** :
+   - Site URL : `https://VOTRE-DOMAINE-PROD`
+   - Redirect URLs : `https://VOTRE-DOMAINE-PROD/auth/confirm`, `http://localhost:3000/auth/confirm` et, pour les prévisualisations Vercel, `https://*-VOTRE-COMPTE.vercel.app/auth/confirm`
+5. **Authentication → Emails → Templates** (recommandé : liens valables sur n'importe quel appareil) :
+   - *Confirm signup* : remplacer le lien par `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/onboarding`
+   - *Reset password* : `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`
+   Sans cette modification, les liens fonctionnent aussi, mais seulement s'ils sont ouverts dans le même navigateur que celui de l'inscription.
+6. **SMTP** : l'envoi intégré de Supabase est limité à quelques emails par heure. Avant d'ouvrir aux clientes, configurer un SMTP (ex. Resend) dans *Authentication → Emails → SMTP Settings*.
+
+## 2. Vercel — projet de production
+
+*Settings → Environment Variables* (Production **et** Preview) :
+
+| Variable | Valeur |
+|---|---|
+| `NEXT_PUBLIC_APP_ENV` | `production` |
+| `NEXT_PUBLIC_SITE_URL` | `https://VOTRE-DOMAINE-PROD` |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL du projet `moka-prod` |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | clé publishable (ou anon) de `moka-prod` |
+
+⚠️ Ne **pas** ajouter `SUPABASE_SERVICE_ROLE_KEY` en production : elle n'y sert à rien.
+Après modification des variables : *Deployments → … → Redeploy*.
+
+## 3. Environnement de démonstration
+
+1. Créer un **second** projet Supabase `moka-demo` et y exécuter les mêmes migrations et réglages (étape 1).
+2. Créer un **second** projet Vercel `moka-reservation-demo` importé depuis le **même** dépôt GitHub.
+3. Variables de ce projet :
+
+| Variable | Valeur |
+|---|---|
+| `NEXT_PUBLIC_APP_ENV` | `demo` |
+| `NEXT_PUBLIC_SITE_URL` | URL du projet démo |
+| `NEXT_PUBLIC_SUPABASE_URL` / `…_PUBLISHABLE_KEY` | ceux de `moka-demo` |
+| `SUPABASE_SERVICE_ROLE_KEY` | clé *secret / service_role* de `moka-demo` |
+| `DEMO_SUPABASE_PROJECT_REF` | identifiant de `moka-demo` (sous-domaine de son URL) |
+| `PRODUCTION_SUPABASE_PROJECT_REF` | identifiant de `moka-prod` (garde-fou) |
+| `DEMO_USER_EMAIL` | ex. `demo@moka-reservation.demo` |
+| `DEMO_USER_PASSWORD` | mot de passe fort |
+| `CRON_SECRET` | 32+ caractères aléatoires |
+
+4. Première initialisation (puis automatique chaque nuit à 4 h UTC) :
+   ```bash
+   curl -X POST https://URL-DEMO/api/demo/reset -H "Authorization: Bearer VOTRE_CRON_SECRET"
+   ```
+   Réponse attendue : `{"ok":true,"businessId":"…"}`.
+
+La réinitialisation **vide entièrement la base démo** puis recrée « Moka Beauty Studio ».
+Elle refuse de s'exécuter si l'application n'est pas en mode démo, si l'URL Supabase
+ne correspond pas à `DEMO_SUPABASE_PROJECT_REF`, ou si elle correspond au projet de production.
+La tâche planifiée existe aussi sur le projet de production, où la route répond 404 sans rien faire.
+
+## 4. Recette manuelle (à faire une fois configuré)
+
+- [ ] Inscription → email reçu → lien → arrivée sur l'onboarding
+- [ ] Onboarding 5 étapes avec logo ; fermer l'onglet à l'étape 3, se reconnecter → reprise à l'étape 3
+- [ ] Tableau de bord : nom, logo, mode et adresses affichés, aucun chiffre fictif
+- [ ] Déconnexion → les pages privées redirigent vers la connexion
+- [ ] Mot de passe oublié → email → nouveau mot de passe → connexion
+- [ ] Second compte : il ne voit pas l'entreprise du premier
+- [ ] Démo : bouton « Explorer la démo », bandeau visible, chiffres marqués fictifs

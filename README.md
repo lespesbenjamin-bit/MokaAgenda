@@ -12,48 +12,16 @@ Next.js 16 (App Router) · TypeScript strict · Tailwind CSS 4 · composants sty
 |---|---|
 | `npm install` | Installer les dépendances |
 | `npm run dev` | Lancer en local sur http://localhost:3000 |
-| `npm run typecheck` | Vérifier le typage TypeScript |
-| `npm run lint` | Vérifier la qualité du code |
-| `npm test` | Lancer les tests |
-| `npm run build` | Compiler pour la production |
-| `npm run check` | Tout vérifier d'un coup (typage + lint + tests + build) |
+| `npm run check` | Typage + lint + tests unitaires + build |
+| `npm run test:db` | Tests SQL et sécurité RLS (PostgreSQL local) |
+| `npm run test:e2e:all` | Build et tests HTTP (production, sans configuration, démo) |
 
-## Environnements
+## Mise en service
 
-| | Production | Démo |
-|---|---|---|
-| Projet Vercel | `moka-reservation` | `moka-reservation-demo` (étape 6) |
-| Projet Supabase | `moka-prod` | `moka-demo` (base distincte) |
-| `NEXT_PUBLIC_APP_ENV` | `production` | `demo` |
+Toute la configuration Supabase, Vercel et démo est décrite pas à pas dans [`docs/SETUP.md`](./docs/SETUP.md).
+Les variables d'environnement sont documentées dans [`.env.example`](./.env.example).
 
-Les variables sont documentées dans [`.env.example`](./.env.example).
+## Documentation
 
-## Déploiement Vercel (première fois)
-
-1. Aller sur https://vercel.com/new et choisir **Import Git Repository** → `MokaAgenda`.
-2. Framework : **Next.js** (détecté automatiquement). Ne rien changer aux commandes de build.
-3. Ouvrir **Environment Variables** et ajouter :
-   - `NEXT_PUBLIC_APP_ENV` = `production`
-4. Cliquer sur **Deploy**.
-
-Ensuite, chaque `git push` sur `main` redéploie automatiquement.
-
-## Organisation du code
-
-```
-src/
-├── app/                 Routes (App Router)
-│   ├── (app)/           Espace professionnel (sidebar + navigation mobile)
-│   └── page.tsx         Page d'accueil publique
-├── components/
-│   ├── ui/              Composants de base (Button, Card, Badge…)
-│   ├── layout/          Sidebar, navigation mobile, bandeau démo
-│   └── modules/         Composants propres aux modules
-├── config/              Navigation et statut des modules
-├── lib/                 Utilitaires, environnement
-└── server/              (à venir) services métier, accès aux données, intégrations
-docs/                    Architecture et décisions
-tests/                   Tests unitaires (Vitest)
-```
-
-Voir [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) pour le détail.
+- [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md) — état du projet, à fournir pour reprendre le travail
+- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) · [`docs/DATABASE_SCHEMA.md`](./docs/DATABASE_SCHEMA.md) · [`docs/TEST_REPORT.md`](./docs/TEST_REPORT.md) · [`docs/ROADMAP.md`](./docs/ROADMAP.md)

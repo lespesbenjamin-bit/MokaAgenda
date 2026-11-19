@@ -1,0 +1,53 @@
+{
+  "_avertissement": "Données ENTIÈREMENT FICTIVES, réservées à l'environnement de démonstration. Ne jamais importer en production.",
+  "version": 1,
+  "business": {
+    "name": "Moka Beauty Studio",
+    "activity": "Institut de beauté & soins à domicile",
+    "activity_mode": "hybrid",
+    "phone": "05 00 00 00 00",
+    "email": "contact@moka-beauty-studio.demo"
+  },
+  "settings": {
+    "timezone": "Europe/Paris",
+    "default_appointment_minutes": 60,
+    "service_radius_km": 20
+  },
+  "locations": [
+    { "kind": "salon", "address_line1": "12 rue des Fleurs (adresse fictive)", "postal_code": "31000", "city": "Toulouse" },
+    { "kind": "travel_base", "address_line1": "12 rue des Fleurs (adresse fictive)", "postal_code": "31000", "city": "Toulouse" }
+  ],
+  "services": [
+    { "name": "Soin visage éclat", "duration_minutes": 60, "price_cents": 6500, "where": "salon", "deposit_type": "none" },
+    { "name": "Beauté des mains semi-permanent", "duration_minutes": 45, "price_cents": 3500, "where": "both", "deposit_type": "none" },
+    { "name": "Épilation jambes complètes", "duration_minutes": 45, "price_cents": 3800, "where": "both", "deposit_type": "none" },
+    { "name": "Rehaussement de cils", "duration_minutes": 60, "price_cents": 5500, "where": "salon", "deposit_type": "fixed", "deposit_value": 1500 },
+    { "name": "Maquillage mariée (à domicile)", "duration_minutes": 90, "price_cents": 12000, "where": "home", "deposit_type": "percentage", "deposit_value": 30 },
+    { "name": "Massage relaxant", "duration_minutes": 60, "price_cents": 7000, "where": "both", "deposit_type": "none" }
+  ],
+  "customers": [
+    { "first_name": "Camille", "last_name": "Exemple" },
+    { "first_name": "Inès", "last_name": "Fictive" },
+    { "first_name": "Léa", "last_name": "Démo" },
+    { "first_name": "Sarah", "last_name": "Modèle" },
+    { "first_name": "Chloé", "last_name": "Test" },
+    { "first_name": "Manon", "last_name": "Exemple" },
+    { "first_name": "Julie", "last_name": "Fictive" },
+    { "first_name": "Emma", "last_name": "Démo" }
+  ],
+  "appointments": [
+    { "day_offset": 0, "time": "09:30", "customer": 0, "service": 0, "where": "salon", "status": "confirmed" },
+    { "day_offset": 0, "time": "11:00", "customer": 1, "service": 1, "where": "home", "status": "confirmed" },
+    { "day_offset": 0, "time": "14:30", "customer": 2, "service": 3, "where": "salon", "status": "pending" },
+    { "day_offset": 1, "time": "10:00", "customer": 3, "service": 4, "where": "home", "status": "confirmed" },
+    { "day_offset": 1, "time": "16:00", "customer": 4, "service": 5, "where": "salon", "status": "confirmed" },
+    { "day_offset": 2, "time": "09:00", "customer": 5, "service": 2, "where": "home", "status": "confirmed" },
+    { "day_offset": 3, "time": "15:00", "customer": 6, "service": 0, "where": "salon", "status": "pending" }
+  ],
+  "kpis": {
+    "upcoming_appointments": 18,
+    "monthly_revenue_cents": 284000,
+    "deposits_collected_cents": 42000,
+    "new_customers": 7
+  }
+}
