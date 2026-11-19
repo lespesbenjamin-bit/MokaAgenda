@@ -2,6 +2,7 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/server/integrations/supabase/admin";
 import { checkDemoTarget } from "./guard";
 import { demoFixtures } from "./fixtures";
+import { DEMO_TABLE_ORDER, buildDemoRows, rowsByTable } from "./seed";
 
 /**
  * Réinitialise la base DÉMO : supprime toutes les entreprises et tous les
@@ -67,6 +68,14 @@ export async function resetDemo(): Promise<{ businessId: string }> {
   for (const step of steps) {
     const { error } = await step;
     if (error) throw new Error(`Données démo : ${error.message}`);
+  }
+
+  // 5. Catalogue et clientes fictives (Sprint 2)
+  const tables = rowsByTable(buildDemoRows(biz.id));
+  for (const table of DEMO_TABLE_ORDER) {
+    if (tables[table].length === 0) continue;
+    const { error } = await admin.from(table).insert(tables[table]);
+    if (error) throw new Error(`Données démo (${table}) : ${error.message}`);
   }
   return { businessId: biz.id };
 }

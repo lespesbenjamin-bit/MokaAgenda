@@ -1,4 +1,57 @@
-# Rapport de tests — Sprint 1 (fiabilisation)
+# Rapport de tests
+
+## Sprint 2 — Prestations et CRM clientes (20 novembre 2026)
+
+Branche : `sprint-2-prestations-clientes`. Seuls les tests réellement exécutés sont indiqués comme réussis.
+
+### Synthèse des exécutions
+
+| Suite | Commande | Résultat |
+|---|---|---|
+| Typage TypeScript strict | `npm run typecheck` | ✅ 0 erreur |
+| Lint | `npm run lint` | ✅ 0 erreur, 0 avertissement |
+| Tests unitaires | `npm test` | ✅ 88 / 88 (dont 41 nouveaux) |
+| Base de données + RLS (PostgreSQL 16) | `npm run test:db` | ✅ 65 / 65 (34 Sprint 1 + 31 Sprint 2) |
+| HTTP — build production | `npm run test:e2e:all` | ✅ 31 / 31 |
+| HTTP — build sans configuration | idem | ✅ 2 / 2 |
+| HTTP — build démo | idem | ✅ 32 / 32 |
+| Non-régression Sprint 1 | toutes les suites ci-dessus | ✅ |
+
+**Contrôle des tests RLS** : RLS désactivée sur `customers` et règle de modification des prestations ouverte → 5 tests échouent. Les tests détectent donc la faille. Pour les prestations, une seconde barrière (règle de lecture) bloquait encore la modification.
+
+### Couverture
+
+- **Prestations** : création et modification (validation du formulaire), duplication atomique avec tarifs et coûts, archivage et réutilisation d'un nom archivé, unicité des noms actifs, tarifs domicile/institut, promo, supplément, HT/TTC, marge indicative (positive, négative, prix nul), validation des acomptes (négatif, > 100 %, fixe > prix le plus bas), instantané pour un futur rendez-vous.
+- **Clientes** : création, modification, recherche (nom sans accents, email, téléphone en tout format), adresses multiples avec une seule principale, coordonnées GPS refusées sans géocodage, consentements, normalisation email/téléphone identique entre application et base, doublons (email, téléphone, nom + date de naissance ; un homonyme n'est pas un doublon).
+- **Import CSV** : séparateurs `,` `;` tabulation, guillemets, retours à la ligne, BOM, correspondance automatique des colonnes, dates françaises et ISO, erreurs par ligne, doublons avec l'existant et dans le fichier, idempotence (clé d'import unique en base).
+- **Sécurité (2 entreprises, propriétaire + staff, visiteur)** : lecture, modification, archivage, suppression et duplication interdits chez l'autre entreprise ; rattachement croisé impossible (clés étrangères composites) pour prestation→catégorie, adresse, consentement, tarif et coût ; `business_id` non modifiable ; `created_by` non falsifiable ; staff : clientes oui, catalogue non ; photos dans le dossier de sa seule entreprise.
+- **Démo** : les 6 catégories, 20 prestations, 25 clientes et 35 adresses sont réellement insérées dans PostgreSQL (contraintes + RLS) ; une adresse principale par cliente ; emails `@exemple.demo` ; aucune coordonnée GPS.
+- **HTTP** : 6 nouvelles pages privées redirigent vers la connexion ; l'aperçu local répond 404 en production.
+- **Visuel** (captures ordinateur 1440 px et mobile 390 px, via l'aperçu local avec données démo) : liste des prestations (tableau / cartes), formulaire avec calcul de marge en direct, catégories, liste et fiche clientes, adresses, import. Interactions vérifiées : filtre « à domicile » (12 prestations), tri, fenêtre de confirmation d'archivage, recherche cliente par téléphone et par nom sans accent, chargement d'un CSV et correspondance des colonnes.
+
+### Corrections faites pendant le sprint
+
+| Problème | Correction |
+|---|---|
+| Une contrainte d'unicité révélait l'existence d'un tarif chez une autre entreprise avant la clé étrangère | Unicité incluant `business_id` |
+| Numéros `0033…` normalisés différemment en base et dans l'application | Même règle des deux côtés, testée |
+| Boutons d'action sur deux lignes dans le tableau | Icônes avec info-bulle et libellé accessible |
+| Filtres occupant tout l'écran mobile | Repliés derrière « Filtres et tri » |
+| Adresses à l'étroit dans la fiche cliente | Cartes empilées |
+
+### Ce qui n'a PAS pu être testé ici
+
+| Point | Raison | Procédure |
+|---|---|---|
+| Requêtes de l'application envoyées à l'API Supabase réelle (PostgREST) et envoi de photos (Storage) | Pas d'accès à votre projet ; le téléchargement local des serveurs Supabase a été refusé par l'environnement | `docs/SETUP.md` §4 « Sprint 2 » |
+| Parcours complet connecté dans le navigateur | Dépend du point précédent | idem |
+| Réinitialisation démo avec les nouvelles données | Projet démo non créé | `docs/SETUP.md` §3 |
+
+Les mêmes règles sont néanmoins vérifiées en base : chaque opération de l'application a son équivalent SQL testé avec les droits réels.
+
+---
+
+## Sprint 1 — Fondations
 
 Date : 19 novembre 2026 · Branche : `sprint-1-5-fiabilisation`
 

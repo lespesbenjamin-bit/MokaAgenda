@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT — Moka Réservation
 
 > Fichier de reprise : à fournir en début de toute nouvelle conversation Claude.
-> Dernière mise à jour : 19 novembre 2026 (soir) — Sprint 1 fusionné et en production, recette manuelle en cours. Sprint 2 **non commencé**.
+> Dernière mise à jour : 20 novembre 2026 — Sprint 1 en production et validé (inscription testée). Sprint 2 développé sur la branche `sprint-2-prestations-clientes` (PR), en attente de la migration SQL et de la recette. Sprint 3 **non commencé**.
 
 ## Le produit
 
@@ -20,7 +20,7 @@ Next.js 16.4 (App Router, **Proxy** au lieu de Middleware, sans Cache Components
 
 ⚠️ Next.js 16 diffère des versions connues : lire `node_modules/next/dist/docs/` avant de coder (voir `AGENTS.md`).
 
-## Design « Blanc vif »
+## Design « Blanc vif » (choisi le 19/11, prime sur les mentions crème/terracotta des cahiers des charges)
 Blanc `#FFFFFF`, surface `#FAFAFA`, orange vif `#FF6B2C` (accents), orange fort `#CC4A0C` (boutons, contraste AA), encre `#18181B`. Police Plus Jakarta Sans. Logo « moka. ». Détails : `docs/ARCHITECTURE.md`.
 
 ## État d'avancement
@@ -33,8 +33,12 @@ Blanc `#FFFFFF`, surface `#FAFAFA`, orange vif `#FF6B2C` (accents), orange fort 
 | Onboarding 5 étapes persistant + logo | ✅ développé, testé au niveau base — **recette manuelle à faire** |
 | Tableau de bord connecté | ✅ développé — **recette manuelle à faire** |
 | Environnement démo | ✅ développé, garde-fous testés — **projet Supabase/Vercel démo à créer** |
-| Écran Paramètres (modification) | « À venir » (Sprint 2) |
-| Prestations, clientes, agenda, réservation, Stripe, tournées, finances, boutique | non commencés |
+| **Prestations** (catégories, formulaire complet, liste, duplication, archivage, marge indicative) | ✅ Sprint 2 — testé (unitaires, PostgreSQL, visuel) — **recette à faire** |
+| **Clientes** (fiche à onglets, adresses, préférences, consentements, doublons, import CSV) | ✅ Sprint 2 — idem |
+| Démo v2 (6 catégories, 20 prestations, 25 clientes) | ✅ données testées en base — projet démo à créer |
+| Services pour l'agenda (`server/services/booking-catalog.ts`) | ✅ préparés |
+| Écran Paramètres (modification) | « À venir » (reporté) |
+| Agenda, réservation en ligne, Stripe, tournées, finances, boutique | non commencés |
 
 Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée sur https://moka-agenda.vercel.app.
 
@@ -43,15 +47,17 @@ Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée 
 - Auth : *Confirm email* activé ; Site URL et Redirect URLs (`/auth/confirm`, `https://moka-agenda.vercel.app/**`, localhost) configurées.
 - Vercel (projet `moka-agenda`, équipe `coaching6`) : variables Supabase + `NEXT_PUBLIC_SITE_URL` ajoutées ; site vérifié en ligne (connexion sans alerte de configuration, pages privées redirigées).
 
-### Reste à faire avant le Sprint 2
-- [ ] Recette manuelle (`docs/SETUP.md` §4) : inscription → email → onboarding → reconnexion → second compte
+### Reste à faire
+- [x] Inscription testée en production (19/11)
+- [ ] Sprint 2 : exécuter `supabase/migrations/20261120000001_sprint2_catalog_crm.sql` dans Supabase, fusionner la PR, recette `docs/SETUP.md` §4 « Sprint 2 »
 - [ ] Modèles d'emails personnalisés (reportés volontairement ; en attendant, ouvrir le lien de confirmation dans le même navigateur)
 - [ ] SMTP personnalisé avant ouverture aux clientes
 - [ ] Projets Supabase + Vercel de démonstration
 
 ## Où trouver quoi
 
-- `docs/SETUP.md` — configuration Supabase / Vercel / démo + recette manuelle
+- `docs/SETUP.md` — configuration Supabase / Vercel / démo + recette manuelle (Sprint 1 et 2)
+- `src/lib/domain/` — règles métier pures (tarifs, acomptes, marges, doublons, import CSV)
 - `docs/ARCHITECTURE.md` — couches, flux d'authentification, design system
 - `docs/DATABASE_SCHEMA.md` — tables, politiques RLS, tables futures
 - `docs/TEST_REPORT.md` — tests exécutés et résultats
@@ -76,4 +82,6 @@ npm run dev            # développement local
 npm run check          # typage + lint + tests unitaires + build
 npm run test:db        # tests SQL/RLS (PostgreSQL local requis)
 npm run test:e2e:all   # build + tests HTTP en production, sans config, et démo
+# Aperçu local des écrans sans base (jamais en production) :
+# MOKA_UI_PREVIEW=1 npm run dev  →  http://localhost:3000/apercu-dev/prestations
 ```

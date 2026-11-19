@@ -22,7 +22,7 @@ describe("navigation", () => {
 
   it("marque explicitement les modules non développés comme « à venir »", () => {
     const available = navigation.filter((i) => i.status === "available").map((i) => i.key);
-    expect(available).toEqual(["dashboard"]);
+    expect(available).toEqual(["dashboard", "customers", "services"]);
   });
 
   it("affiche exactement 3 modules + « Plus » dans la barre mobile", () => {

@@ -1,6 +1,6 @@
 {
   "_avertissement": "Données ENTIÈREMENT FICTIVES, réservées à l'environnement de démonstration. Ne jamais importer en production.",
-  "version": 1,
+  "version": 2,
   "business": {
     "name": "Moka Beauty Studio",
     "activity": "Institut de beauté & soins à domicile",
@@ -14,40 +14,1146 @@
     "service_radius_km": 20
   },
   "locations": [
-    { "kind": "salon", "address_line1": "12 rue des Fleurs (adresse fictive)", "postal_code": "31000", "city": "Toulouse" },
-    { "kind": "travel_base", "address_line1": "12 rue des Fleurs (adresse fictive)", "postal_code": "31000", "city": "Toulouse" }
+    {
+      "kind": "salon",
+      "address_line1": "12 rue des Fleurs (adresse fictive)",
+      "postal_code": "31000",
+      "city": "Toulouse"
+    },
+    {
+      "kind": "travel_base",
+      "address_line1": "12 rue des Fleurs (adresse fictive)",
+      "postal_code": "31000",
+      "city": "Toulouse"
+    }
   ],
   "services": [
-    { "name": "Soin visage éclat", "duration_minutes": 60, "price_cents": 6500, "where": "salon", "deposit_type": "none" },
-    { "name": "Beauté des mains semi-permanent", "duration_minutes": 45, "price_cents": 3500, "where": "both", "deposit_type": "none" },
-    { "name": "Épilation jambes complètes", "duration_minutes": 45, "price_cents": 3800, "where": "both", "deposit_type": "none" },
-    { "name": "Rehaussement de cils", "duration_minutes": 60, "price_cents": 5500, "where": "salon", "deposit_type": "fixed", "deposit_value": 1500 },
-    { "name": "Maquillage mariée (à domicile)", "duration_minutes": 90, "price_cents": 12000, "where": "home", "deposit_type": "percentage", "deposit_value": 30 },
-    { "name": "Massage relaxant", "duration_minutes": 60, "price_cents": 7000, "where": "both", "deposit_type": "none" }
+    {
+      "name": "Épilation sourcils",
+      "category": 0,
+      "duration_minutes": 15,
+      "prep_minutes": 0,
+      "cleanup_minutes": 5,
+      "buffer_minutes": 0,
+      "base_price_cents": 1200,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null
+      },
+      "costs": {
+        "consumables": 50,
+        "products": 30,
+        "other": 0
+      },
+      "deposit_type": "none",
+      "deposit_value": 0,
+      "online_bookable": true
+    },
+    {
+      "name": "Épilation demi-jambes",
+      "category": 0,
+      "duration_minutes": 30,
+      "prep_minutes": 5,
+      "cleanup_minutes": 5,
+      "buffer_minutes": 10,
+      "base_price_cents": 2200,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null,
+        "home": 2500
+      },
+      "costs": {
+        "consumables": 200,
+        "products": 80,
+        "other": 0
+      },
+      "deposit_type": "none",
+      "deposit_value": 0,
+      "online_bookable": true
+    },
+    {
+      "name": "Épilation jambes complètes",
+      "category": 0,
+      "duration_minutes": 45,
+      "prep_minutes": 5,
+      "cleanup_minutes": 10,
+      "buffer_minutes": 10,
+      "base_price_cents": 3500,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null,
+        "home": 3900
+      },
+      "costs": {
+        "consumables": 300,
+        "products": 120,
+        "other": 0
+      },
+      "deposit_type": "none",
+      "deposit_value": 0,
+      "online_bookable": true
+    },
+    {
+      "name": "Épilation maillot intégral",
+      "category": 0,
+      "duration_minutes": 30,
+      "prep_minutes": 5,
+      "cleanup_minutes": 10,
+      "buffer_minutes": 0,
+      "base_price_cents": 3200,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null
+      },
+      "costs": {
+        "consumables": 250,
+        "products": 100,
+        "other": 0
+      },
+      "deposit_type": "none",
+      "deposit_value": 0,
+      "online_bookable": true
+    },
+    {
+      "name": "Soin visage éclat",
+      "category": 1,
+      "duration_minutes": 60,
+      "prep_minutes": 10,
+      "cleanup_minutes": 10,
+      "buffer_minutes": 0,
+      "base_price_cents": 6500,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null
+      },
+      "costs": {
+        "consumables": 400,
+        "products": 600,
+        "other": 100
+      },
+      "deposit_type": "none",
+      "deposit_value": 0,
+      "online_bookable": true
+    },
+    {
+      "name": "Soin hydratant profond",
+      "category": 1,
+      "duration_minutes": 75,
+      "prep_minutes": 10,
+      "cleanup_minutes": 10,
+      "buffer_minutes": 0,
+      "base_price_cents": 7900,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null
+      },
+      "costs": {
+        "consumables": 450,
+        "products": 800,
+        "other": 100
+      },
+      "deposit_type": "fixed",
+      "deposit_value": 1500,
+      "online_bookable": true
+    },
+    {
+      "name": "Nettoyage de peau",
+      "category": 1,
+      "duration_minutes": 45,
+      "prep_minutes": 5,
+      "cleanup_minutes": 10,
+      "buffer_minutes": 10,
+      "base_price_cents": 4900,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null,
+        "home": 5500
+      },
+      "costs": {
+        "consumables": 300,
+        "products": 400,
+        "other": 50
+      },
+      "deposit_type": "none",
+      "deposit_value": 0,
+      "online_bookable": true
+    },
+    {
+      "name": "Soin anti-âge premium",
+      "category": 1,
+      "duration_minutes": 90,
+      "prep_minutes": 10,
+      "cleanup_minutes": 15,
+      "buffer_minutes": 0,
+      "base_price_cents": 11000,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null
+      },
+      "costs": {
+        "consumables": 600,
+        "products": 1800,
+        "other": 150
+      },
+      "deposit_type": "percentage",
+      "deposit_value": 30,
+      "online_bookable": true
+    },
+    {
+      "name": "Pose vernis semi-permanent mains",
+      "category": 2,
+      "duration_minutes": 45,
+      "prep_minutes": 5,
+      "cleanup_minutes": 10,
+      "buffer_minutes": 10,
+      "base_price_cents": 3500,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null,
+        "home": 3900
+      },
+      "costs": {
+        "consumables": 250,
+        "products": 300,
+        "other": 0
+      },
+      "deposit_type": "none",
+      "deposit_value": 0,
+      "online_bookable": true
+    },
+    {
+      "name": "Gainage gel",
+      "category": 2,
+      "duration_minutes": 75,
+      "prep_minutes": 5,
+      "cleanup_minutes": 10,
+      "buffer_minutes": 10,
+      "base_price_cents": 5500,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null,
+        "home": 5900
+      },
+      "costs": {
+        "consumables": 400,
+        "products": 600,
+        "other": 0
+      },
+      "deposit_type": "fixed",
+      "deposit_value": 1000,
+      "online_bookable": true
+    },
+    {
+      "name": "Beauté des pieds",
+      "category": 2,
+      "duration_minutes": 50,
+      "prep_minutes": 5,
+      "cleanup_minutes": 10,
+      "buffer_minutes": 10,
+      "base_price_cents": 4000,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null,
+        "home": 4500
+      },
+      "costs": {
+        "consumables": 200,
+        "products": 300,
+        "other": 50
+      },
+      "deposit_type": "none",
+      "deposit_value": 0,
+      "online_bookable": true
+    },
+    {
+      "name": "Dépose semi-permanent",
+      "category": 2,
+      "duration_minutes": 20,
+      "prep_minutes": 0,
+      "cleanup_minutes": 5,
+      "buffer_minutes": 10,
+      "base_price_cents": 1200,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null,
+        "home": 1500
+      },
+      "costs": {
+        "consumables": 100,
+        "products": 50,
+        "other": 0
+      },
+      "deposit_type": "none",
+      "deposit_value": 0,
+      "online_bookable": true
+    },
+    {
+      "name": "Extensions cil à cil",
+      "category": 3,
+      "duration_minutes": 120,
+      "prep_minutes": 10,
+      "cleanup_minutes": 10,
+      "buffer_minutes": 0,
+      "base_price_cents": 9000,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null
+      },
+      "costs": {
+        "consumables": 800,
+        "products": 1000,
+        "other": 0
+      },
+      "deposit_type": "percentage",
+      "deposit_value": 30,
+      "online_bookable": true
+    },
+    {
+      "name": "Remplissage extensions",
+      "category": 3,
+      "duration_minutes": 75,
+      "prep_minutes": 10,
+      "cleanup_minutes": 10,
+      "buffer_minutes": 0,
+      "base_price_cents": 5500,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null
+      },
+      "costs": {
+        "consumables": 500,
+        "products": 600,
+        "other": 0
+      },
+      "deposit_type": "fixed",
+      "deposit_value": 1500,
+      "online_bookable": true
+    },
+    {
+      "name": "Rehaussement de cils",
+      "category": 3,
+      "duration_minutes": 60,
+      "prep_minutes": 5,
+      "cleanup_minutes": 10,
+      "buffer_minutes": 10,
+      "base_price_cents": 5500,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null,
+        "home": 6000
+      },
+      "costs": {
+        "consumables": 300,
+        "products": 500,
+        "other": 0
+      },
+      "deposit_type": "fixed",
+      "deposit_value": 1500,
+      "online_bookable": true
+    },
+    {
+      "name": "Massage relaxant 60 min",
+      "category": 4,
+      "duration_minutes": 60,
+      "prep_minutes": 10,
+      "cleanup_minutes": 15,
+      "buffer_minutes": 10,
+      "base_price_cents": 7000,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null,
+        "home": 8000
+      },
+      "costs": {
+        "consumables": 200,
+        "products": 400,
+        "other": 100
+      },
+      "deposit_type": "none",
+      "deposit_value": 0,
+      "online_bookable": true
+    },
+    {
+      "name": "Massage dos et nuque 30 min",
+      "category": 4,
+      "duration_minutes": 30,
+      "prep_minutes": 5,
+      "cleanup_minutes": 10,
+      "buffer_minutes": 10,
+      "base_price_cents": 4000,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null,
+        "home": 4800
+      },
+      "costs": {
+        "consumables": 100,
+        "products": 200,
+        "other": 50
+      },
+      "deposit_type": "none",
+      "deposit_value": 0,
+      "online_bookable": true
+    },
+    {
+      "name": "Massage pierres chaudes",
+      "category": 4,
+      "duration_minutes": 75,
+      "prep_minutes": 15,
+      "cleanup_minutes": 15,
+      "buffer_minutes": 0,
+      "base_price_cents": 9000,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null
+      },
+      "costs": {
+        "consumables": 200,
+        "products": 500,
+        "other": 200
+      },
+      "deposit_type": "fixed",
+      "deposit_value": 2000,
+      "online_bookable": true
+    },
+    {
+      "name": "Maquillage soirée",
+      "category": 5,
+      "duration_minutes": 45,
+      "prep_minutes": 5,
+      "cleanup_minutes": 5,
+      "buffer_minutes": 10,
+      "base_price_cents": 4500,
+      "vat_rate_bps": 0,
+      "places": {
+        "salon": null,
+        "home": 5500
+      },
+      "costs": {
+        "consumables": 100,
+        "products": 600,
+        "other": 0
+      },
+      "deposit_type": "none",
+      "deposit_value": 0,
+      "online_bookable": true
+    },
+    {
+      "name": "Maquillage mariée (essai + jour J)",
+      "category": 5,
+      "duration_minutes": 150,
+      "prep_minutes": 15,
+      "cleanup_minutes": 15,
+      "buffer_minutes": 10,
+      "base_price_cents": 22000,
+      "vat_rate_bps": 0,
+      "places": {
+        "home": 24000
+      },
+      "costs": {
+        "consumables": 300,
+        "products": 2000,
+        "other": 500
+      },
+      "deposit_type": "percentage",
+      "deposit_value": 30,
+      "online_bookable": true
+    }
   ],
   "customers": [
-    { "first_name": "Camille", "last_name": "Exemple" },
-    { "first_name": "Inès", "last_name": "Fictive" },
-    { "first_name": "Léa", "last_name": "Démo" },
-    { "first_name": "Sarah", "last_name": "Modèle" },
-    { "first_name": "Chloé", "last_name": "Test" },
-    { "first_name": "Manon", "last_name": "Exemple" },
-    { "first_name": "Julie", "last_name": "Fictive" },
-    { "first_name": "Emma", "last_name": "Démo" }
+    {
+      "first_name": "Camille",
+      "last_name": "Exemple",
+      "email": "camille.1@exemple.demo",
+      "phone": "06 39 98 00 10",
+      "contact_preference": "any",
+      "notes": "Préfère les rendez-vous en fin de journée.",
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "1 rue des Lilas",
+          "postal_code": "31000",
+          "city": "Toulouse",
+          "is_primary": true
+        },
+        {
+          "kind": "work",
+          "line1": "2 rue du Moulin",
+          "postal_code": "31770",
+          "city": "Colomiers",
+          "is_primary": false
+        },
+        {
+          "kind": "other",
+          "label": "Chez sa mère (fictif)",
+          "line1": "5 chemin des Vignes",
+          "postal_code": "31000",
+          "city": "Toulouse",
+          "is_primary": false
+        }
+      ],
+      "consents": {
+        "email": true,
+        "sms": true
+      }
+    },
+    {
+      "first_name": "Inès",
+      "last_name": "Fictive",
+      "email": "ines.2@exemple.demo",
+      "phone": "06 39 98 00 17",
+      "contact_preference": "sms",
+      "notes": "Digicode 12A (fictif).",
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "8 allée des Tilleuls",
+          "postal_code": "31700",
+          "city": "Blagnac",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": false
+      }
+    },
+    {
+      "first_name": "Léa",
+      "last_name": "Démo",
+      "email": "lea.3@exemple.demo",
+      "phone": null,
+      "contact_preference": "email",
+      "notes": null,
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "15 avenue des Pins",
+          "postal_code": "31770",
+          "city": "Colomiers",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": true
+      }
+    },
+    {
+      "first_name": "Sarah",
+      "last_name": "Modèle",
+      "email": null,
+      "phone": "06 39 98 00 31",
+      "contact_preference": "phone",
+      "notes": "Cliente fidèle depuis l'ouverture (fictif).",
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "22 rue du Moulin",
+          "postal_code": "31240",
+          "city": "L'Union",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": true,
+        "sms": false
+      }
+    },
+    {
+      "first_name": "Chloé",
+      "last_name": "Test",
+      "email": "chloe.5@exemple.demo",
+      "phone": "06 39 98 00 38",
+      "contact_preference": "any",
+      "notes": null,
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "29 impasse des Roses",
+          "postal_code": "31130",
+          "city": "Balma",
+          "is_primary": true
+        },
+        {
+          "kind": "work",
+          "line1": "14 place du Marché",
+          "postal_code": "31000",
+          "city": "Toulouse",
+          "is_primary": false
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": true
+      }
+    },
+    {
+      "first_name": "Manon",
+      "last_name": "Échantillon",
+      "email": "manon.6@exemple.demo",
+      "phone": "06 39 98 00 45",
+      "contact_preference": "any",
+      "notes": "Préfère les rendez-vous en fin de journée.",
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "36 chemin des Vignes",
+          "postal_code": "31520",
+          "city": "Ramonville-Saint-Agne",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": false
+      }
+    },
+    {
+      "first_name": "Julie",
+      "last_name": "Exemplaire",
+      "email": "julie.7@exemple.demo",
+      "phone": null,
+      "contact_preference": "sms",
+      "notes": "Digicode 12A (fictif).",
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "43 rue de la Fontaine",
+          "postal_code": "31000",
+          "city": "Toulouse",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": true,
+        "sms": true
+      }
+    },
+    {
+      "first_name": "Emma",
+      "last_name": "Prototype",
+      "email": "emma.8@exemple.demo",
+      "phone": "06 39 98 00 59",
+      "contact_preference": "email",
+      "notes": null,
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "50 place du Marché",
+          "postal_code": "31700",
+          "city": "Blagnac",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": false
+      }
+    },
+    {
+      "first_name": "Jade",
+      "last_name": "Fiction",
+      "email": null,
+      "phone": "06 39 98 00 66",
+      "contact_preference": "phone",
+      "notes": "Cliente fidèle depuis l'ouverture (fictif).",
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "57 rue des Lilas",
+          "postal_code": "31770",
+          "city": "Colomiers",
+          "is_primary": true
+        },
+        {
+          "kind": "work",
+          "line1": "26 rue du Moulin",
+          "postal_code": "31130",
+          "city": "Balma",
+          "is_primary": false
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": true
+      }
+    },
+    {
+      "first_name": "Louise",
+      "last_name": "Maquette",
+      "email": "louise.10@exemple.demo",
+      "phone": "06 39 98 00 73",
+      "contact_preference": "any",
+      "notes": null,
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "4 allée des Tilleuls",
+          "postal_code": "31240",
+          "city": "L'Union",
+          "is_primary": true
+        },
+        {
+          "kind": "other",
+          "label": "Chez sa mère (fictif)",
+          "line1": "14 rue de la Fontaine",
+          "postal_code": "31000",
+          "city": "Toulouse",
+          "is_primary": false
+        }
+      ],
+      "consents": {
+        "email": true,
+        "sms": false
+      }
+    },
+    {
+      "first_name": "Alice",
+      "last_name": "Esquisse",
+      "email": "alice.11@exemple.demo",
+      "phone": null,
+      "contact_preference": "any",
+      "notes": "Préfère les rendez-vous en fin de journée.",
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "11 avenue des Pins",
+          "postal_code": "31130",
+          "city": "Balma",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": true
+      }
+    },
+    {
+      "first_name": "Lina",
+      "last_name": "Brouillon",
+      "email": "lina.12@exemple.demo",
+      "phone": "06 39 98 01 17",
+      "contact_preference": "sms",
+      "notes": "Digicode 12A (fictif).",
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "18 rue du Moulin",
+          "postal_code": "31520",
+          "city": "Ramonville-Saint-Agne",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": false
+      }
+    },
+    {
+      "first_name": "Rose",
+      "last_name": "Simulée",
+      "email": "rose.13@exemple.demo",
+      "phone": "06 39 98 01 24",
+      "contact_preference": "email",
+      "notes": null,
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "25 impasse des Roses",
+          "postal_code": "31000",
+          "city": "Toulouse",
+          "is_primary": true
+        },
+        {
+          "kind": "work",
+          "line1": "38 place du Marché",
+          "postal_code": "31770",
+          "city": "Colomiers",
+          "is_primary": false
+        }
+      ],
+      "consents": {
+        "email": true,
+        "sms": true
+      }
+    },
+    {
+      "first_name": "Anna",
+      "last_name": "Essai",
+      "email": null,
+      "phone": "06 39 98 01 31",
+      "contact_preference": "phone",
+      "notes": "Cliente fidèle depuis l'ouverture (fictif).",
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "32 chemin des Vignes",
+          "postal_code": "31700",
+          "city": "Blagnac",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": false
+      }
+    },
+    {
+      "first_name": "Zoé",
+      "last_name": "Factice",
+      "email": "zoe.15@exemple.demo",
+      "phone": null,
+      "contact_preference": "any",
+      "notes": null,
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "39 rue de la Fontaine",
+          "postal_code": "31770",
+          "city": "Colomiers",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": true
+      }
+    },
+    {
+      "first_name": "Mila",
+      "last_name": "Démonstration",
+      "email": "mila.16@exemple.demo",
+      "phone": "06 39 98 01 45",
+      "contact_preference": "any",
+      "notes": "Préfère les rendez-vous en fin de journée.",
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "46 place du Marché",
+          "postal_code": "31240",
+          "city": "L'Union",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": true,
+        "sms": false
+      }
+    },
+    {
+      "first_name": "Ambre",
+      "last_name": "Illustration",
+      "email": "ambre.17@exemple.demo",
+      "phone": "06 39 98 01 52",
+      "contact_preference": "sms",
+      "notes": "Digicode 12A (fictif).",
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "53 rue des Lilas",
+          "postal_code": "31130",
+          "city": "Balma",
+          "is_primary": true
+        },
+        {
+          "kind": "work",
+          "line1": "10 rue du Moulin",
+          "postal_code": "31000",
+          "city": "Toulouse",
+          "is_primary": false
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": true
+      }
+    },
+    {
+      "first_name": "Lucie",
+      "last_name": "Patron",
+      "email": "lucie.18@exemple.demo",
+      "phone": "06 39 98 01 59",
+      "contact_preference": "email",
+      "notes": null,
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "60 allée des Tilleuls",
+          "postal_code": "31520",
+          "city": "Ramonville-Saint-Agne",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": false
+      }
+    },
+    {
+      "first_name": "Clara",
+      "last_name": "Gabarit",
+      "email": null,
+      "phone": null,
+      "contact_preference": "phone",
+      "notes": "Cliente fidèle depuis l'ouverture (fictif).",
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "7 avenue des Pins",
+          "postal_code": "31000",
+          "city": "Toulouse",
+          "is_primary": true
+        },
+        {
+          "kind": "other",
+          "label": "Chez sa mère (fictif)",
+          "line1": "23 place du Marché",
+          "postal_code": "31000",
+          "city": "Toulouse",
+          "is_primary": false
+        }
+      ],
+      "consents": {
+        "email": true,
+        "sms": true
+      }
+    },
+    {
+      "first_name": "Nina",
+      "last_name": "Spécimen",
+      "email": "nina.20@exemple.demo",
+      "phone": "06 39 98 01 73",
+      "contact_preference": "any",
+      "notes": null,
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "14 rue du Moulin",
+          "postal_code": "31700",
+          "city": "Blagnac",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": false
+      }
+    },
+    {
+      "first_name": "Eva",
+      "last_name": "Ébauche",
+      "email": "eva.21@exemple.demo",
+      "phone": "06 39 98 02 10",
+      "contact_preference": "any",
+      "notes": "Préfère les rendez-vous en fin de journée.",
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "21 impasse des Roses",
+          "postal_code": "31770",
+          "city": "Colomiers",
+          "is_primary": true
+        },
+        {
+          "kind": "work",
+          "line1": "22 place du Marché",
+          "postal_code": "31130",
+          "city": "Balma",
+          "is_primary": false
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": true
+      }
+    },
+    {
+      "first_name": "Margaux",
+      "last_name": "Imaginaire",
+      "email": "margaux.22@exemple.demo",
+      "phone": "06 39 98 02 17",
+      "contact_preference": "sms",
+      "notes": "Digicode 12A (fictif).",
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "28 chemin des Vignes",
+          "postal_code": "31240",
+          "city": "L'Union",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": true,
+        "sms": false
+      }
+    },
+    {
+      "first_name": "Agathe",
+      "last_name": "Inventée",
+      "email": "agathe.23@exemple.demo",
+      "phone": null,
+      "contact_preference": "email",
+      "notes": null,
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "35 rue de la Fontaine",
+          "postal_code": "31130",
+          "city": "Balma",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": true
+      }
+    },
+    {
+      "first_name": "Romane",
+      "last_name": "Virtuelle",
+      "email": null,
+      "phone": "06 39 98 02 31",
+      "contact_preference": "phone",
+      "notes": "Cliente fidèle depuis l'ouverture (fictif).",
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "42 place du Marché",
+          "postal_code": "31520",
+          "city": "Ramonville-Saint-Agne",
+          "is_primary": true
+        }
+      ],
+      "consents": {
+        "email": false,
+        "sms": false
+      }
+    },
+    {
+      "first_name": "Elsa",
+      "last_name": "Synthèse",
+      "email": "elsa.25@exemple.demo",
+      "phone": "06 39 98 02 38",
+      "contact_preference": "any",
+      "notes": null,
+      "addresses": [
+        {
+          "kind": "home",
+          "line1": "49 rue des Lilas",
+          "postal_code": "31000",
+          "city": "Toulouse",
+          "is_primary": true
+        },
+        {
+          "kind": "work",
+          "line1": "34 rue du Moulin",
+          "postal_code": "31770",
+          "city": "Colomiers",
+          "is_primary": false
+        }
+      ],
+      "consents": {
+        "email": true,
+        "sms": true
+      }
+    }
   ],
   "appointments": [
-    { "day_offset": 0, "time": "09:30", "customer": 0, "service": 0, "where": "salon", "status": "confirmed" },
-    { "day_offset": 0, "time": "11:00", "customer": 1, "service": 1, "where": "home", "status": "confirmed" },
-    { "day_offset": 0, "time": "14:30", "customer": 2, "service": 3, "where": "salon", "status": "pending" },
-    { "day_offset": 1, "time": "10:00", "customer": 3, "service": 4, "where": "home", "status": "confirmed" },
-    { "day_offset": 1, "time": "16:00", "customer": 4, "service": 5, "where": "salon", "status": "confirmed" },
-    { "day_offset": 2, "time": "09:00", "customer": 5, "service": 2, "where": "home", "status": "confirmed" },
-    { "day_offset": 3, "time": "15:00", "customer": 6, "service": 0, "where": "salon", "status": "pending" }
+    {
+      "day_offset": 0,
+      "time": "09:30",
+      "customer": 0,
+      "service": 4,
+      "where": "salon",
+      "status": "confirmed"
+    },
+    {
+      "day_offset": 0,
+      "time": "11:00",
+      "customer": 1,
+      "service": 8,
+      "where": "home",
+      "status": "confirmed"
+    },
+    {
+      "day_offset": 0,
+      "time": "14:30",
+      "customer": 2,
+      "service": 14,
+      "where": "salon",
+      "status": "pending"
+    },
+    {
+      "day_offset": 1,
+      "time": "10:00",
+      "customer": 3,
+      "service": 19,
+      "where": "home",
+      "status": "confirmed"
+    },
+    {
+      "day_offset": 1,
+      "time": "16:00",
+      "customer": 4,
+      "service": 15,
+      "where": "salon",
+      "status": "confirmed"
+    },
+    {
+      "day_offset": 2,
+      "time": "09:00",
+      "customer": 5,
+      "service": 2,
+      "where": "home",
+      "status": "confirmed"
+    },
+    {
+      "day_offset": 3,
+      "time": "15:00",
+      "customer": 6,
+      "service": 5,
+      "where": "salon",
+      "status": "pending"
+    }
   ],
   "kpis": {
     "upcoming_appointments": 18,
     "monthly_revenue_cents": 284000,
     "deposits_collected_cents": 42000,
     "new_customers": 7
-  }
+  },
+  "categories": [
+    {
+      "name": "Épilation",
+      "description": "Épilation à la cire tiède et au sucre",
+      "position": 1
+    },
+    {
+      "name": "Soins du visage",
+      "description": "Soins personnalisés selon le type de peau",
+      "position": 2
+    },
+    {
+      "name": "Onglerie",
+      "description": "Beauté des mains et des pieds",
+      "position": 3
+    },
+    {
+      "name": "Extensions de cils",
+      "description": "Pose et rehaussement",
+      "position": 4
+    },
+    {
+      "name": "Massages bien-être",
+      "description": "Massages de relaxation, non thérapeutiques",
+      "position": 5
+    },
+    {
+      "name": "Maquillage",
+      "description": "Maquillage événementiel et cours",
+      "position": 6
+    }
+  ]
 }
