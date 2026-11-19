@@ -53,7 +53,10 @@ export async function signUpAction(_prev: FormState, formData: FormData): Promis
       data: { full_name: parsed.data.fullName },
     },
   });
-  if (error) return withValues({ error: translateAuthError(error.message, error.code) }, formData);
+  if (error) {
+    console.error("[auth] inscription", { code: error.code, status: error.status, message: error.message });
+    return withValues({ error: translateAuthError(error.message, error.code) }, formData);
+  }
 
   // Confirmation email désactivée dans Supabase : session immédiate.
   if (data.session) redirect(ROUTES.onboarding);
@@ -69,6 +72,7 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
   if (!supabase) return withValues(NOT_CONFIGURED, formData);
 
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  if (error) console.error("[auth] connexion", { code: error.code, status: error.status });
   if (error) return withValues({ error: translateAuthError(error.message, error.code) }, formData);
 
   redirect(safeNextPath(values.next));

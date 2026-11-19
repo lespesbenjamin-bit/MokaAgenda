@@ -31,7 +31,9 @@ describe("inscription", () => {
   it("traduit les erreurs Supabase", () => {
     expect(translateAuthError("Invalid login credentials", "invalid_credentials")).toMatch(/incorrect/);
     expect(translateAuthError("Email not confirmed")).toMatch(/confirmée/);
-    expect(translateAuthError("boom")).toMatch(/erreur est survenue/);
+    expect(translateAuthError("boom")).toMatch(/erreur est survenue.*boom/);
+    expect(translateAuthError("Error sending confirmation email", "unexpected_failure")).toMatch(/email de confirmation/);
+    expect(translateAuthError("Database error saving new user", "unexpected_failure")).toMatch(/base de données/);
   });
 });
 

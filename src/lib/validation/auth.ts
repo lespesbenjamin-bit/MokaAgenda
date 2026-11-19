@@ -76,5 +76,16 @@ export function translateAuthError(message: string | undefined, code?: string): 
   if (code === "same_password") return "Le nouveau mot de passe doit être différent de l'ancien.";
   if (code === "over_email_send_rate_limit" || code === "over_request_rate_limit" || m.includes("rate limit"))
     return "Trop de tentatives. Patientez quelques minutes avant de réessayer.";
-  return "Une erreur est survenue. Réessayez dans un instant.";
+  if (code === "email_address_not_authorized" || m.includes("not authorized"))
+    return "Cette adresse ne peut pas recevoir d'email : l'envoi d'emails n'est pas encore configuré (SMTP).";
+  if (code === "signup_disabled" || m.includes("signups not allowed"))
+    return "Les inscriptions sont désactivées dans la configuration Supabase.";
+  if (m.includes("error sending") && m.includes("email"))
+    return "L'email de confirmation n'a pas pu être envoyé (configuration email Supabase).";
+  if (m.includes("invalid api key") || code === "no_authorization")
+    return "Clé Supabase invalide dans la configuration du site.";
+  if (m.includes("database error"))
+    return "Erreur de la base de données lors de la création du compte.";
+  const detail = [code, message].filter(Boolean).join(" — ").slice(0, 160);
+  return `Une erreur est survenue. Réessayez dans un instant.${detail ? ` (Détail : ${detail})` : ""}`;
 }
