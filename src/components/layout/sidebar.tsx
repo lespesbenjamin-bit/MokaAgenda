@@ -1,12 +1,13 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navigation, isActivePath } from "@/config/navigation";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
 
-export function Sidebar() {
+export function Sidebar({ footer }: { footer?: ReactNode }) {
   const pathname = usePathname();
 
   return (
@@ -44,6 +45,7 @@ export function Sidebar() {
           })}
         </ul>
       </nav>
+      {footer && <div className="border-t border-border p-3">{footer}</div>}
     </aside>
   );
 }

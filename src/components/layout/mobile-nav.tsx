@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MoreHorizontal, X } from "lucide-react";
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 const primaryItems = navigation.filter((i) => i.mobilePrimary);
 const moreItems = navigation.filter((i) => !i.mobilePrimary);
 
-export function MobileNav() {
+export function MobileNav({ footer }: { footer?: ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const moreActive = moreItems.some((i) => isActivePath(pathname, i.href));
@@ -116,6 +116,7 @@ export function MobileNav() {
                 );
               })}
             </ul>
+            {footer && <div className="mt-2 border-t border-border pt-2">{footer}</div>}
           </div>
         </div>
       )}
