@@ -44,7 +44,9 @@ export function getSupabasePublicConfig(
   } catch {
     return null;
   }
-  return { url: url.replace(/\/+$/, ""), publishableKey };
+  // Ne garder que l'origine (https://xxxx.supabase.co) : tolère une URL
+  // copiée avec un chemin, par ex. .../rest/v1/ depuis la page « Data API ».
+  return { url: new URL(url).origin, publishableKey };
 }
 
 /** URL publique de l'application, utilisée dans les liens envoyés par email. */

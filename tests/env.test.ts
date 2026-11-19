@@ -29,3 +29,11 @@ describe("getSupabasePublicConfig", () => {
     expect(getSupabasePublicConfig({ NEXT_PUBLIC_SUPABASE_URL: "http://x.supabase.co", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "k" })).toBeNull();
   });
 });
+
+describe("normalisation de l'URL Supabase", () => {
+  it("ignore un chemin copié par erreur (/rest/v1/)", () => {
+    expect(
+      getSupabasePublicConfig({ NEXT_PUBLIC_SUPABASE_URL: " https://abc.supabase.co/rest/v1/ ", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "k" })?.url,
+    ).toBe("https://abc.supabase.co");
+  });
+});
