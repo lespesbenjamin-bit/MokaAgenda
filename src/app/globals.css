@@ -1,0 +1,104 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/manrope";
+@import "@fontsource-variable/fraunces";
+
+/* ─────────────────────────────────────────────
+   Design system Moka
+   Blanc cassé · Crème · Terracotta · Anthracite
+   ───────────────────────────────────────────── */
+
+:root {
+  /* Palette de marque */
+  --moka-ivory: #faf7f2;
+  --moka-cream: #f1e8da;
+  --moka-cream-strong: #e8dbc6;
+  --moka-terracotta: #b4532f; /* contraste AA sur blanc */
+  --moka-terracotta-hover: #9c4527;
+  --moka-terracotta-soft: #f6e4da;
+  --moka-anthracite: #2b2a28;
+  --moka-stone: #6f6a63;
+  --moka-line: #e6ddd0;
+
+  /* Tokens sémantiques (convention shadcn/ui) */
+  --background: var(--moka-ivory);
+  --foreground: var(--moka-anthracite);
+  --card: #ffffff;
+  --card-foreground: var(--moka-anthracite);
+  --primary: var(--moka-terracotta);
+  --primary-hover: var(--moka-terracotta-hover);
+  --primary-foreground: #ffffff;
+  --secondary: var(--moka-cream);
+  --secondary-foreground: var(--moka-anthracite);
+  --muted: var(--moka-cream);
+  --muted-foreground: var(--moka-stone);
+  --accent: var(--moka-terracotta-soft);
+  --accent-foreground: var(--moka-terracotta-hover);
+  --border: var(--moka-line);
+  --input: var(--moka-line);
+  --ring: var(--moka-terracotta);
+  --success: #3f6f4c;
+  --success-soft: #e3eee5;
+  --warning: #8a5a14;
+  --warning-soft: #f7ebd3;
+  --destructive: #a63d32;
+
+  --radius: 1rem;
+}
+
+@theme inline {
+  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-destructive: var(--destructive);
+
+  --color-ivory: var(--moka-ivory);
+  --color-cream: var(--moka-cream);
+  --color-cream-strong: var(--moka-cream-strong);
+  --color-terracotta: var(--moka-terracotta);
+  --color-anthracite: var(--moka-anthracite);
+
+  --radius-sm: calc(var(--radius) - 8px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
