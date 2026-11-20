@@ -1,17 +1,30 @@
 {
   "_avertissement": "Données ENTIÈREMENT FICTIVES, réservées à l'environnement de démonstration. Ne jamais importer en production.",
-  "version": 3,
+  "version": 4,
   "business": {
     "name": "Moka Beauty Studio",
     "activity": "Institut de beauté & soins à domicile",
     "activity_mode": "hybrid",
     "phone": "05 00 00 00 00",
-    "email": "contact@moka-beauty-studio.demo"
+    "email": "contact@moka-beauty-studio.demo",
+    "slug": "moka-beauty-studio-demo"
   },
   "settings": {
     "timezone": "Europe/Paris",
     "default_appointment_minutes": 60,
-    "service_radius_km": 20
+    "service_radius_km": 20,
+    "booking_enabled": true,
+    "public_description": "Institut fictif de démonstration : soins du visage, épilations et beauté des mains, en institut à Toulouse ou à domicile dans un rayon de 20 km.",
+    "public_phone": "05 00 00 00 00",
+    "public_email": "contact@moka-beauty-studio.demo",
+    "public_instagram": "moka.beauty.demo",
+    "cancellation_policy": "Démonstration : annulation gratuite jusqu'à 24 h avant le rendez-vous. Au-delà, merci de prévenir par téléphone.",
+    "booking_terms": "Démonstration : merci d'arriver 5 minutes avant votre rendez-vous en institut. À domicile, prévoyez un espace calme et une prise électrique.",
+    "cancellation_notice_hours": 24,
+    "customer_can_cancel": true,
+    "customer_can_reschedule": true,
+    "booking_window_days": 60,
+    "slot_step_minutes": 15
   },
   "locations": [
     {

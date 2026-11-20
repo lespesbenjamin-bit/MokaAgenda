@@ -88,7 +88,7 @@ Extension : `btree_gist` (schéma `extensions`), pour les contraintes d'exclusio
 | `appointment_items` | prestations du rendez-vous : **instantané** | nom, durée, prix catalogue et prix appliqué (`price_overridden`), TVA, HT, acompte, coûts (consommables, produits, autres) ; lien vers la prestation conservé même archivée |
 | `booking_events` | historique | `created`, `updated`, `rescheduled`, `status_changed`, `cancelled` ; écrit **uniquement par la base** (déclencheur), lecture seule |
 | `appointment_travel` | préparée (Sprint 5) | distance, durée, frais : renseignés seulement avec `computed_at` (aucune valeur inventée) |
-| `booking_holds` | préparée (Sprint 4) | blocage temporaire d'un créneau pendant le paiement ; aucune politique → serveur uniquement |
+| `booking_holds` | préparée (Sprint 6) | blocage temporaire d'un créneau pendant le paiement ; aucune politique → serveur uniquement ; déjà pris en compte par la réservation publique |
 
 **Garanties PostgreSQL (déclencheurs sur `appointments`)**
 
@@ -103,6 +103,21 @@ Extension : `btree_gist` (schéma `extensions`), pour les contraintes d'exclusio
 **Droits Sprint 3** : horaires et blocages — lecture membres, écriture propriétaire ; rendez-vous et prestations du rendez-vous — lecture membres, écriture propriétaire + staff, **aucune suppression** (annulation) ; historique — lecture seule.
 
 **Hypothèse V1** : un seul agenda par entreprise. L'agenda par employée ajoutera une colonne (ex. `staff_id`) à la contrainte d'exclusion.
+
+## Sprint 4 — Réservation en ligne (`20261122000001_sprint4_public_booking.sql`)
+
+| Changement | Détail |
+|---|---|
+| `businesses.slug` | adresse publique `/reserver/<slug>` ; unique, format contrôlé ; générée depuis le nom (comptes existants inclus, sans autre modification) ; modifiable par la propriétaire |
+| `business_settings` + 13 colonnes | `booking_enabled` (**faux par défaut**), présentation, couverture, coordonnées publiques, Instagram, politique d'annulation, délai (h), annulation / déplacement autorisés, horizon (jours), pas des créneaux, email d'alerte |
+| `appointments` + 4 colonnes | `customer_comment`, `conditions_snapshot` (règles et coordonnées **figées** à la réservation), `idempotency_key` (unique par entreprise), `public_token_hash` (SHA-256 du lien secret) |
+| `notifications` (nouvelle) | journal des emails : type, destinataire, statut (`pending`, `sent`, `failed`, `skipped`, `simulated`), `scheduled_for` (rappels futurs), fournisseur, erreur ; lecture membres, écriture propriétaire + staff |
+
+**Fonctions publiques** (exécutables par `anon`, security definer, `search_path` vide) : `public_booking_page`, `public_availability`, `public_create_booking`, `public_get_booking`, `public_cancel_booking`, `public_reschedule_booking`, `public_record_notification`. Elles ne renvoient jamais l'adresse de départ des déplacements, les motifs des blocages ni aucune autre cliente.
+
+**Règles appliquées par `public_create_booking`** : page activée ; prestation active, réservable en ligne, non archivée, proposée à ce lieu et **sans acompte** ; délai minimum et horizon ; grille de 5 min ; adresse complète à domicile (code postal à 5 chiffres) ; plafonds anti-abus (30 réservations en ligne / heure / entreprise, 3 / 24 h / contact) ; verrou `lock_schedule` ; blocages `booking_holds` actifs ; mêmes déclencheurs et contrainte d'exclusion que l'agenda ; fiche cliente retrouvée par email puis téléphone **sans écraser** les données (seuls les champs vides sont complétés) ; statut `confirmed`, source `online`.
+
+**Annulation / déplacement par la cliente** : selon les règles figées dans `conditions_snapshot` (délai, autorisations) ; 3 déplacements maximum ; historique automatique (auteur vide = cliente).
 
 ## Instantanés financiers
 

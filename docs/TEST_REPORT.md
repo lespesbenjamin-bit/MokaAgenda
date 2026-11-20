@@ -1,5 +1,45 @@
 # Rapport de tests
 
+## Sprint 4 — Réservation en ligne (20 novembre 2026)
+
+Branche : `sprint-4-reservation-en-ligne`. Seuls les tests réellement exécutés sont indiqués comme réussis.
+
+### Audit préalable du Sprint 3
+Unitaires 103/103, base 103/103, typage OK : aucun blocage fonctionnel. Manques bloquants pour le Sprint 4 corrigés : pas d'adresse publique (slug), pas de réglages de réservation.
+**Défaut trouvé et corrigé** : `checkSlot()` ignorait les périodes occupées sans identifiant lorsqu'aucun rendez-vous n'était exclu (sans effet sur l'agenda, dont les périodes ont toujours un identifiant ; bloquant pour la réservation publique). Couvert par un test.
+
+| Suite | Commande | Résultat |
+|---|---|---|
+| Typage TypeScript strict | `npx tsc --noEmit` | ✅ 0 erreur |
+| Lint | `npm run lint` | ✅ 0 erreur, 0 avertissement |
+| Tests unitaires | `npm test` | ✅ 129 / 129 (26 nouveaux) |
+| Base de données + RLS (PostgreSQL 16) | `npm run test:db` | ✅ 136 / 136 (30 Sprint 4 + 3 démo) |
+| HTTP — build production | `npm run test:e2e:all` | ✅ 40 / 40 |
+| HTTP — build sans configuration | idem | ✅ 7 / 7 |
+| HTTP — build démo | idem | ✅ 41 / 41 |
+| Vérification visuelle (Playwright, 390 px et 1280 px) | aperçu local | ✅ 7 écrans ; logo masqué par la couverture corrigé |
+
+**Contrôle des tests** : en retirant le refus des acomptes, le contrôle du lien secret et l'isolement par entreprise de la recherche de cliente, 4 tests échouent.
+
+### Couverture
+- **Sans compte** : rôle `anon` refusé sur toutes les tables ; uniquement les fonctions publiques.
+- **Page publique** : seules les prestations actives, réservables, non archivées ; adresse de départ et email pro jamais exposés ; page désactivée ou inconnue → rien.
+- **Créneaux** : même moteur que l'agenda ; plages par lieu, pause, rendez-vous existants + tampon, jour fermé, congé, délai minimum, horizon, changement d'heure (unitaires).
+- **Réservation** : confirmée, source « en ligne », prix lu au catalogue (prix envoyé par le navigateur ignoré), coûts figés, historique, 2 notifications préparées ; visible par la pro, invisible pour une autre entreprise.
+- **Refus** : créneau occupé ou dans le tampon, hors horaires, période bloquée (motif non exposé), trop tôt, trop loin, hors grille, prestation inactive / sur devis / avec acompte / lieu non proposé / d'une autre entreprise, conditions non acceptées, email, téléphone, nom, jeton, lieu invalides ; adresse domicile incomplète ou code postal invalide.
+- **Doublons** : même email → même fiche, nom et notes conservés, téléphone complété ; même téléphone au format +33 / 0033 → même fiche ; même cliente chez une autre pro → fiche distincte ; double soumission → un seul rendez-vous ; plafond par contact.
+- **Concurrence** : deux réservations simultanées sur deux connexions → une seule réussit.
+- **Lien secret** : consultation, mauvais lien, déplacement libre / occupé, annulation qui libère le créneau, action après annulation refusée, délai et autorisations figés à la réservation, journal d'envoi réservé au bon lien.
+- **Emails** (unitaires) : contenu, fuseau, échappement HTML, démo jamais envoyée même avec une clé, absence de configuration = « non envoyé », succès et échec Resend simulés.
+- **Sécurité HTTP** : page inconnue → 404 propre sans détail technique ; lien invalide → message ; en-têtes `no-referrer`, `noindex`, `no-store`, `DENY`.
+- **Démo** : page publique fictive ouverte, rendez-vous « en ligne » sans acompte, réservation test arrivée dans l'agenda démo.
+
+### Non vérifiable ici (à faire en recette)
+- Parcours complet dans un navigateur connecté au **vrai** Supabase (PostgREST non installable dans cet environnement) : les fonctions SQL sont testées directement avec les rôles réels, l'interface sur données fictives.
+- **Envoi réel d'emails** : nécessite un compte Resend (aucune clé configurée).
+- La limitation par IP est en mémoire par instance Vercel (meilleur effort) ; les plafonds en base font foi.
+
+
 ## Sprint 3 — Agenda et disponibilités (20 novembre 2026)
 
 Branche : `sprint-3-agenda`. Seuls les tests réellement exécutés sont indiqués comme réussis.

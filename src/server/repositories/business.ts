@@ -17,6 +17,8 @@ export interface Business {
   phone: string | null;
   email: string | null;
   logo_path: string | null;
+  /** Adresse publique : /reserver/<slug> */
+  slug: string;
   onboarding_step: number;
   onboarding_completed_at: string | null;
 }
@@ -28,7 +30,41 @@ export interface BusinessSettings {
   default_appointment_minutes: number;
   service_radius_km: number | null;
   booking_terms: string | null;
+  // Réservation en ligne (Sprint 4)
+  booking_enabled: boolean;
+  public_description: string | null;
+  cover_path: string | null;
+  public_phone: string | null;
+  public_email: string | null;
+  public_instagram: string | null;
+  cancellation_policy: string | null;
+  cancellation_notice_hours: number;
+  customer_can_cancel: boolean;
+  customer_can_reschedule: boolean;
+  booking_window_days: number;
+  slot_step_minutes: number;
+  notification_email: string | null;
 }
+
+export type BookingSettingsPatch = Partial<
+  Pick<
+    BusinessSettings,
+    | "booking_enabled"
+    | "public_description"
+    | "cover_path"
+    | "public_phone"
+    | "public_email"
+    | "public_instagram"
+    | "cancellation_policy"
+    | "booking_terms"
+    | "cancellation_notice_hours"
+    | "customer_can_cancel"
+    | "customer_can_reschedule"
+    | "booking_window_days"
+    | "slot_step_minutes"
+    | "notification_email"
+  >
+>;
 
 export type LocationKind = "salon" | "travel_base";
 
@@ -48,7 +84,7 @@ export class RepositoryError extends Error {
 }
 
 const BUSINESS_COLUMNS =
-  "id, name, activity, activity_mode, phone, email, logo_path, onboarding_step, onboarding_completed_at";
+  "id, name, activity, activity_mode, phone, email, logo_path, slug, onboarding_step, onboarding_completed_at";
 
 /** Entreprise principale de l'utilisatrice (Sprint 1 : une entreprise par compte). */
 export async function findMembershipForUser(
@@ -75,10 +111,13 @@ export async function findMembershipForUser(
   return { business: business as Business, role: membership.role as MemberRole };
 }
 
+const SETTINGS_COLUMNS =
+  "business_id, timezone, currency, default_appointment_minutes, service_radius_km, booking_terms, booking_enabled, public_description, cover_path, public_phone, public_email, public_instagram, cancellation_policy, cancellation_notice_hours, customer_can_cancel, customer_can_reschedule, booking_window_days, slot_step_minutes, notification_email";
+
 export async function findSettings(supabase: SupabaseClient, businessId: string): Promise<BusinessSettings | null> {
   const { data, error } = await supabase
     .from("business_settings")
-    .select("business_id, timezone, currency, default_appointment_minutes, service_radius_km, booking_terms")
+    .select(SETTINGS_COLUMNS)
     .eq("business_id", businessId)
     .maybeSingle();
   if (error) throw new RepositoryError("Lecture des paramètres", error);
@@ -125,7 +164,7 @@ export async function updateBusiness(
 export async function updateSettings(
   supabase: SupabaseClient,
   businessId: string,
-  patch: Partial<Pick<BusinessSettings, "timezone" | "default_appointment_minutes" | "service_radius_km">>,
+  patch: Partial<Pick<BusinessSettings, "timezone" | "default_appointment_minutes" | "service_radius_km">> | BookingSettingsPatch,
 ): Promise<void> {
   const { data, error } = await supabase
     .from("business_settings")
@@ -183,6 +222,15 @@ export async function uploadLogo(supabase: SupabaseClient, businessId: string, f
 
 export async function removeLogo(supabase: SupabaseClient, path: string): Promise<void> {
   await supabase.storage.from(LOGO_BUCKET).remove([path]);
+}
+
+/** Photo de couverture de la page publique (même espace de stockage public que le logo). */
+export async function uploadCover(supabase: SupabaseClient, businessId: string, file: File): Promise<string> {
+  const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+  const path = `${businessId}/cover-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from(LOGO_BUCKET).upload(path, file, { contentType: file.type, upsert: false, cacheControl: "31536000" });
+  if (error) throw new RepositoryError("Envoi de la photo de couverture", error);
+  return path;
 }
 
 export function getLogoUrl(supabase: SupabaseClient, path: string | null): string | null {

@@ -33,6 +33,8 @@ export interface Appointment {
   notes_internal: string | null;
   cancel_reason: string | null;
   cancelled_at: string | null;
+  source: "manual" | "online";
+  customer_comment: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -64,7 +66,7 @@ export interface BookingEvent {
 }
 
 const APPOINTMENT_COLUMNS =
-  "id, customer_id, place, status, starts_at, ends_at, duration_minutes, prep_minutes, cleanup_minutes, buffer_minutes, address_id, address_line1, address_line2, postal_code, city, price_total_cents, deposit_amount_cents, balance_due_cents, payment_status, notes_internal, cancel_reason, cancelled_at, created_at, updated_at";
+  "id, customer_id, place, status, starts_at, ends_at, duration_minutes, prep_minutes, cleanup_minutes, buffer_minutes, address_id, address_line1, address_line2, postal_code, city, price_total_cents, deposit_amount_cents, balance_due_cents, payment_status, notes_internal, cancel_reason, cancelled_at, source, customer_comment, created_at, updated_at";
 const ITEM_COLUMNS =
   "appointment_id, service_id, position, service_name, duration_minutes, catalog_price_cents, unit_price_cents, price_overridden, vat_rate_bps, deposit_type, deposit_amount_cents, consumables_cents, products_cents, other_costs_cents";
 

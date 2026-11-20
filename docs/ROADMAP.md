@@ -37,15 +37,29 @@
 - [x] Démo : horaires hybrides et rendez-vous fictifs cohérents
 - [ ] Recette manuelle (voir SETUP §4 « Sprint 3 »)
 
-## Sprint 4 — Réservation en ligne (non commencé, attend validation)
+## Sprint 4 — Réservation en ligne (développé, en attente de SQL + recette)
 
-- Page publique de réservation utilisant `freeSlots()` et le même contrôle PostgreSQL
-- `booking_holds` pendant le paiement de l'acompte, statut « en attente » puis « confirmé »
+- [x] Adresse publique par professionnelle (`/reserver/<slug>`), générée automatiquement, modifiable
+- [x] Page publique : logo, couverture, présentation, catégories, prestations, tarifs, durées, lieux, conditions, contact, partage
+- [x] Parcours mobile en 6 étapes, sans compte ; créneaux calculés par le moteur de l'agenda
+- [x] Confirmation : contrôle final en base, prix relus au catalogue, protection doubles clics et réservations simultanées
+- [x] Prestations avec acompte non réservables en ligne (message explicatif)
+- [x] Fiche cliente : réutilisation sans doublon (email puis téléphone), sans écraser les données existantes
+- [x] Lien sécurisé : annulation et déplacement selon les règles de la professionnelle (figées à la réservation)
+- [x] Emails : confirmation, alerte pro, annulation, modification ; journal `notifications` ; architecture prête pour les rappels
+- [x] Sécurité : limitation de débit (IP + plafonds en base), validation stricte, piège anti-robots, en-têtes `no-referrer` / `noindex`
+- [x] Démo : page publique fictive, rendez-vous « pris en ligne », confirmation simulée signalée
+- [ ] Exécuter la migration, configurer Resend, recette manuelle
+
+## Sprint 5 — Tournées et trajets (non commencé, attend validation)
+
+## Sprint 6 — Paiements Stripe
+
+- Acomptes en ligne : `booking_holds` pendant le paiement, statut « en attente » puis « confirmé » (tables et états prêts)
 
 ## Sprints suivants
 
-- Réservation en ligne et moteur de disponibilités (disponibilités serveur, `booking_holds`, anti-conflit, confirmation automatique)
-- Paiements Stripe (acomptes, solde restant, abonnements Solo / Complet), mode test en démo
-- Tournées et temps de trajet
+- Paiements Stripe (solde restant, abonnements Solo / Complet), mode test en démo
+- Rappels automatiques par email (colonne `scheduled_for` prête)
 - Finances et rentabilité
 - Boutique

@@ -67,7 +67,7 @@ La tâche planifiée existe aussi sur le projet de production, où la route rép
 
 ## Variables d'environnement
 
-Les Sprints 2 et 3 n'ajoutent **aucune** variable en production. `MOKA_UI_PREVIEW=1` sert uniquement en local pour l'aperçu des écrans ; ne jamais la définir sur Vercel.
+Les Sprints 2 et 3 n'ajoutent **aucune** variable en production. Le Sprint 4 ajoute deux variables **facultatives** pour les emails : `RESEND_API_KEY` et `EMAIL_FROM` (voir §5). Sans elles, la réservation fonctionne mais aucun email n'est envoyé. `MOKA_UI_PREVIEW=1` sert uniquement en local pour l'aperçu des écrans ; ne jamais la définir sur Vercel.
 
 ## 4. Recette manuelle (à faire une fois configuré)
 
@@ -99,3 +99,30 @@ Les Sprints 2 et 3 n'ajoutent **aucune** variable en production. `MOKA_UI_PREVIE
 - [ ] Bloquer une journée de congé, puis tenter un rendez-vous ce jour-là → refus
 - [ ] Annuler un rendez-vous avec un motif → historique mis à jour, créneau libéré
 - [ ] Changer le prix d'une prestation au catalogue → le rendez-vous existant garde l'ancien prix
+
+### Sprint 4 — réservation en ligne
+- [ ] Paramètres → Réservation en ligne : cocher « Activer », renseigner présentation, téléphone, politique d'annulation ; Enregistrer
+- [ ] Cliquer « Voir ma page » : logo, présentation, prestations et prix corrects ; prestations avec acompte affichées mais non réservables
+- [ ] Sur téléphone (navigation privée, sans être connectée) : réserver une prestation en institut → page « Votre rendez-vous est confirmé »
+- [ ] Le rendez-vous apparaît dans l'Agenda (badge « Réservé en ligne ») et la fiche cliente est créée
+- [ ] Recharger la page publique : le créneau réservé n'est plus proposé
+- [ ] Réserver à domicile avec un code postal à 4 chiffres → message d'erreur ; corriger → OK, adresse dans la fiche cliente
+- [ ] Refaire une réservation avec le même email → rattachée à la même fiche (pas de doublon)
+- [ ] Depuis le lien de gestion : déplacer, puis annuler → l'agenda se met à jour
+- [ ] Dans Paramètres, mettre « 720 h » avant, faire une réservation à J+3 → l'annulation en ligne est refusée
+- [ ] Désactiver la page → `/reserver/...` affiche « Réservation en ligne indisponible »
+- [ ] (Si Resend configuré) emails reçus : confirmation cliente, alerte professionnelle, annulation, modification
+
+## 5. Emails de réservation (Resend) — facultatif
+
+1. Créer un compte sur https://resend.com (gratuit jusqu'à 3 000 emails/mois).
+2. **Domains → Add domain** : ajouter votre domaine (ex. `mokastudio.fr`) puis copier les enregistrements DNS indiqués chez votre hébergeur de domaine ; attendre « Verified ».
+   Sans domaine vérifié, Resend n'envoie qu'à l'adresse du compte (suffisant pour un test).
+3. **API Keys → Create API key** (permission « Sending access ») : copier la clé `re_...`.
+4. Vercel → projet `moka-agenda` → Settings → Environment Variables (Production) :
+   - `RESEND_API_KEY` = la clé `re_...`
+   - `EMAIL_FROM` = `Moka Réservation <reservations@votre-domaine.fr>`
+5. Vercel → Deployments → ⋯ → Redeploy.
+6. Paramètres → la carte « Emails automatiques » doit indiquer « Actifs ».
+
+⚠️ Ne jamais définir ces variables sur le projet **démo** : la démo simule les emails quoi qu'il arrive.

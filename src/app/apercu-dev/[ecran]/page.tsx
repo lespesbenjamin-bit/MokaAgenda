@@ -17,6 +17,13 @@ import { ExceptionsManager, WeeklyHoursEditor } from "@/components/agenda/availa
 import type { CalendarBackground, CalendarEvent } from "@/server/actions/agenda";
 import { addDays, isoWeekdayOf, localDate, zonedToUtc } from "@/lib/domain/time";
 import { offeredPlaces, totalPriceCents } from "@/lib/domain/pricing";
+import { PublicBookingView } from "@/components/booking/public-booking-view";
+import { ManageBookingView } from "@/components/booking/manage-booking-view";
+import { BookingSettingsForm } from "@/components/settings/booking-settings-form";
+import { ShareLink } from "@/components/booking/share-link";
+import { demoFixtures } from "@/server/demo/fixtures";
+import type { PublicPage, PublicService } from "@/lib/domain/public-booking";
+import type { DaySlots, PublicBooking, PublicPageView } from "@/server/services/public-booking";
 
 /**
  * Aperçu visuel des écrans avec les données démo, SANS base de données.
@@ -232,6 +239,110 @@ export default async function PreviewPage({ params }: { params: Promise<{ ecran:
       </>
     ),
   };
+  // ─── Réservation publique (Sprint 4) ───
+  const f = demoFixtures;
+  const publicServices: PublicService[] = services
+    .filter((_, i) => f.services[i].online_bookable)
+    .map((sv, i) => ({
+      id: sv.id,
+      category_id: sv.categoryId,
+      name: sv.name,
+      description: i === 4 ? "Nettoyage, gommage doux, masque éclat et modelage du visage. Idéal avant un évènement." : null,
+      photo_path: null,
+      duration_minutes: sv.durationMinutes,
+      prep_minutes: sv.prepMinutes,
+      cleanup_minutes: sv.cleanupMinutes,
+      buffer_minutes: 0,
+      min_notice_minutes: 0,
+      deposit_type: sv.pricing.depositType,
+      deposit_value: sv.pricing.depositValue,
+      extra_fee_cents: 0,
+      extra_fee_label: null,
+      places: offeredPlaces(sv.pricing).map((pl) => ({ place: pl, price_cents: totalPriceCents(sv.pricing, pl) })),
+    }));
+  const salonLoc = f.locations.find((l) => l.kind === "salon")!;
+  const publicPage: PublicPageView = {
+    business: { ...f.business, activity_mode: "hybrid", logo_path: null, cover_path: null, description: f.settings.public_description, phone: f.settings.public_phone, email: f.settings.public_email, instagram: f.settings.public_instagram },
+    settings: {
+      timezone: TZ,
+      booking_window_days: 60,
+      slot_step_minutes: 15,
+      cancellation_notice_hours: 24,
+      customer_can_cancel: true,
+      customer_can_reschedule: true,
+      cancellation_policy: f.settings.cancellation_policy,
+      booking_terms: f.settings.booking_terms,
+    },
+    salon: { line1: salonLoc.address_line1, line2: null, postal_code: salonLoc.postal_code, city: salonLoc.city },
+    has_hours: true,
+    categories: cats.map((c) => ({ id: c.id, name: c.name, description: null })),
+    services: publicServices,
+    logoUrl: null,
+    coverUrl: null,
+    photoUrls: {},
+  } satisfies PublicPage & Record<string, unknown>;
+  const today = localDate(now, TZ);
+  const previewDays: DaySlots[] = Array.from({ length: 14 }, (_, d) => {
+    const day = addDays(today, d);
+    const wd = isoWeekdayOf(day);
+    const mins = wd === 7 || wd === 3 ? [] : [540, 600, 645, 690, 840, 885, 930, 1005, 1050].filter((_, k) => (k + d) % 3 !== 0);
+    return { day, slots: mins.map((m) => zonedToUtc(day, m, TZ).toISOString()) };
+  });
+  const both = publicServices.find((sv) => sv.places.length === 2 && sv.deposit_type === "none")!;
+  const chosen = previewDays.find((d) => d.slots.length)!.slots[1];
+  const contact = { first_name: "Nina", last_name: "Martin", email: "nina.martin@exemple.demo", phone: "06 12 34 56 78", address_line1: "3 allée des Pins", postal_code: "31000", city: "Toulouse", accept_terms: true };
+  const publicScreens: Record<string, React.ReactNode> = {
+    reserver: <PublicBookingView page={publicPage} now={now} idempotencyKey="00000000-0000-4000-8000-000000000000" />,
+    "reserver-lieu": <PublicBookingView page={publicPage} now={now} idempotencyKey="00000000-0000-4000-8000-000000000000" preview={{ step: 1, serviceId: both.id }} />,
+    "reserver-creneau": <PublicBookingView page={publicPage} now={now} idempotencyKey="00000000-0000-4000-8000-000000000000" preview={{ step: 2, serviceId: both.id, place: "home", days: previewDays }} />,
+    "reserver-coordonnees": <PublicBookingView page={publicPage} now={now} idempotencyKey="00000000-0000-4000-8000-000000000000" preview={{ step: 3, serviceId: both.id, place: "home", startsAt: chosen, contact: { first_name: "Nina" } }} />,
+    "reserver-recap": <PublicBookingView page={publicPage} now={now} idempotencyKey="00000000-0000-4000-8000-000000000000" preview={{ step: 4, serviceId: both.id, place: "home", startsAt: chosen, contact }} />,
+  };
+  const booking: PublicBooking = {
+    id: "00000000-0000-4000-8000-000000000001",
+    reference: "8F2A61C0",
+    status: "confirmed",
+    source: "online",
+    starts_at: chosen,
+    ends_at: new Date(new Date(chosen).getTime() + both.duration_minutes * 60_000).toISOString(),
+    duration_minutes: both.duration_minutes,
+    prep_minutes: 0,
+    cleanup_minutes: 0,
+    buffer_minutes: 0,
+    place: "home",
+    address: { line1: "3 allée des Pins", line2: null, postal_code: "31000", city: "Toulouse" },
+    price_total_cents: both.places.find((p) => p.place === "home")!.price_cents,
+    deposit_amount_cents: 0,
+    comment: null,
+    cancelled_at: null,
+    customer: { first_name: "Nina", last_name: "Martin", email: "nina.martin@exemple.demo", phone: "06 12 34 56 78" },
+    items: [{ service_id: both.id, name: both.name, duration_minutes: both.duration_minutes, price_cents: 0 }],
+    min_notice_minutes: 0,
+    business: { name: f.business.name, slug: f.business.slug, phone: f.settings.public_phone, email: f.settings.public_email, booking_enabled: true, timezone: TZ, booking_window_days: 60, slot_step_minutes: 15 },
+    salon: null,
+    policy: { cancellation_notice_hours: 24, customer_can_cancel: true, customer_can_reschedule: true, cancellation_policy: f.settings.cancellation_policy },
+    reschedule_count: 0,
+  };
+  publicScreens["rdv-client"] = <ManageBookingView booking={booking} token="apercu" now={now} driver="resend" flags={{ confirmee: true }} />;
+  if (publicScreens[ecran]) return publicScreens[ecran];
+
+  screens["parametres-reservation"] = (
+    <>
+      <PageHeader title="Paramètres" description="Votre page de réservation en ligne et ses règles." />
+      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
+        <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+          <BookingSettingsForm
+            siteUrl="https://moka-agenda.vercel.app"
+            defaults={{ booking_enabled: true, slug: f.business.slug, public_description: f.settings.public_description, public_phone: f.settings.public_phone, public_email: f.settings.public_email, public_instagram: f.settings.public_instagram, cancellation_policy: f.settings.cancellation_policy, booking_terms: f.settings.booking_terms, cancellation_notice_hours: 24, customer_can_cancel: true, customer_can_reschedule: true, booking_window_days: 60, slot_step_minutes: 15, notification_email: "", coverUrl: null, defaultNotificationEmail: f.business.email }}
+          />
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+          <ShareLink url={`https://moka-agenda.vercel.app/reserver/${f.business.slug}`} title={f.business.name} />
+        </div>
+      </div>
+    </>
+  );
+
   const content = screens[ecran];
   if (!content) notFound();
   return <AppShell identity={{ name: "Moka Beauty Studio", logoUrl: null, subtitle: "Hybride" }}>{content}</AppShell>;
