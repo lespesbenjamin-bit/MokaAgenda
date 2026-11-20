@@ -336,7 +336,7 @@ export function AreaForm({ area }: { area: (ServiceArea & { is_active: boolean }
           </Select>
         </div>
         {kind === "radius" ? (
-          <F label="Jusqu'à" name="max_km" inputMode="decimal" defaultValue={area?.max_km != null ? String(area.max_km).replace(".", ",") : ""} suffix="km par la route" error={fe.max_km} />
+          <F label="Jusqu'à (distance par la route)" name="max_km" inputMode="decimal" defaultValue={area?.max_km != null ? String(area.max_km).replace(".", ",") : ""} suffix="km" error={fe.max_km} />
         ) : (
           <F label="Codes postaux" name="postcodes" defaultValue={(area?.postcodes ?? []).join(", ")} error={fe.postcodes} placeholder="31000, 31200, 31300" />
         )}

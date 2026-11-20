@@ -1,6 +1,6 @@
 {
   "_avertissement": "Données ENTIÈREMENT FICTIVES, réservées à l'environnement de démonstration. Ne jamais importer en production.",
-  "version": 4,
+  "version": 5,
   "business": {
     "name": "Moka Beauty Studio",
     "activity": "Institut de beauté & soins à domicile",
@@ -29,13 +29,13 @@
   "locations": [
     {
       "kind": "salon",
-      "address_line1": "12 rue des Fleurs (adresse fictive)",
+      "address_line1": "Place du Capitole (lieu public, adresse fictive pour la démo)",
       "postal_code": "31000",
       "city": "Toulouse"
     },
     {
       "kind": "travel_base",
-      "address_line1": "12 rue des Fleurs (adresse fictive)",
+      "address_line1": "Allées Jean Jaurès (lieu public, adresse fictive pour la démo)",
       "postal_code": "31000",
       "city": "Toulouse"
     }
@@ -1175,5 +1175,256 @@
     "past_days": 10,
     "future_days": 14,
     "per_range": 2
-  }
+  },
+  "travel": {
+    "settings": {
+      "enabled": true,
+      "start_point": "travel_base",
+      "return_point": "travel_base",
+      "safety_margin_pct": 20,
+      "safety_margin_minutes": 5,
+      "pricing_mode": "per_km",
+      "fixed_fee_cents": 0,
+      "per_km_cents": 50,
+      "included_km": 5,
+      "min_fee_cents": 500,
+      "max_fee_cents": 2500,
+      "free_above_cents": null,
+      "fee_vat_rate_bps": 0
+    },
+    "vehicle": {
+      "label": "Citadine essence (démo)",
+      "kind": "car_fuel",
+      "consumption_per_100km": 6.0,
+      "energy_unit": "l",
+      "energy_price_millis": 1800,
+      "wear_cost_per_km_millis": 120,
+      "all_in_cost_per_km_millis": null,
+      "fixed_cost_per_trip_cents": 0,
+      "parking_tolls_per_trip_cents": 0,
+      "hourly_time_cost_cents": 2000,
+      "is_default": true
+    },
+    "areas": [
+      {
+        "name": "Toulouse et première couronne",
+        "kind": "radius",
+        "max_km": 15,
+        "postcodes": null,
+        "excluded": false,
+        "surcharge_cents": 0,
+        "min_order_cents": 0,
+        "weekdays": null,
+        "position": 1
+      },
+      {
+        "name": "Nord toulousain",
+        "kind": "postcodes",
+        "max_km": null,
+        "postcodes": [
+          "31140",
+          "31150",
+          "31790"
+        ],
+        "excluded": false,
+        "surcharge_cents": 300,
+        "min_order_cents": 4000,
+        "weekdays": [
+          2,
+          4
+        ],
+        "position": 2
+      },
+      {
+        "name": "Hors secteur (démo)",
+        "kind": "postcodes",
+        "max_km": null,
+        "postcodes": [
+          "31800"
+        ],
+        "excluded": true,
+        "surcharge_cents": 0,
+        "min_order_cents": 0,
+        "weekdays": null,
+        "position": 0
+      }
+    ]
+  },
+  "extra_businesses": [
+    {
+      "business": {
+        "name": "Atelier Nomade (démo)",
+        "activity": "Esthéticienne 100 % à domicile",
+        "activity_mode": "home",
+        "phone": "05 00 00 00 01",
+        "email": "contact@atelier-nomade.demo",
+        "slug": "atelier-nomade-demo"
+      },
+      "settings": {
+        "timezone": "Europe/Paris",
+        "default_appointment_minutes": 60,
+        "service_radius_km": 25,
+        "booking_enabled": true,
+        "public_description": "Professionnelle fictive de démonstration : soins et beauté des mains uniquement à domicile.",
+        "cancellation_notice_hours": 24,
+        "customer_can_cancel": true,
+        "customer_can_reschedule": true,
+        "booking_window_days": 30,
+        "slot_step_minutes": 15
+      },
+      "locations": [
+        {
+          "kind": "travel_base",
+          "address_line1": "Place Wilson (lieu public, adresse fictive pour la démo)",
+          "postal_code": "31000",
+          "city": "Toulouse"
+        }
+      ],
+      "travel": {
+        "settings": {
+          "enabled": true,
+          "start_point": "travel_base",
+          "return_point": "none",
+          "safety_margin_pct": 25,
+          "safety_margin_minutes": 10,
+          "pricing_mode": "free_above",
+          "fixed_fee_cents": 800,
+          "per_km_cents": 0,
+          "included_km": 0,
+          "min_fee_cents": 0,
+          "max_fee_cents": null,
+          "free_above_cents": 6000,
+          "fee_vat_rate_bps": 0
+        },
+        "vehicle": {
+          "label": "Voiture électrique (démo)",
+          "kind": "car_electric",
+          "consumption_per_100km": 16.0,
+          "energy_unit": "kwh",
+          "energy_price_millis": 250,
+          "wear_cost_per_km_millis": 100,
+          "all_in_cost_per_km_millis": null,
+          "fixed_cost_per_trip_cents": 0,
+          "parking_tolls_per_trip_cents": 200,
+          "hourly_time_cost_cents": 1800,
+          "is_default": true
+        },
+        "areas": []
+      },
+      "services": [
+        "Soin visage éclat",
+        "Pose vernis semi-permanent mains",
+        "Beauté des pieds",
+        "Massage dos et nuque 30 min"
+      ],
+      "places": [
+        "home"
+      ],
+      "availability": [
+        {
+          "weekday": 1,
+          "start": 540,
+          "end": 1080,
+          "place": "home"
+        },
+        {
+          "weekday": 2,
+          "start": 540,
+          "end": 1080,
+          "place": "home"
+        },
+        {
+          "weekday": 3,
+          "start": 540,
+          "end": 1080,
+          "place": "home"
+        },
+        {
+          "weekday": 4,
+          "start": 540,
+          "end": 1080,
+          "place": "home"
+        },
+        {
+          "weekday": 5,
+          "start": 540,
+          "end": 1080,
+          "place": "home"
+        }
+      ]
+    },
+    {
+      "business": {
+        "name": "Institut Lumière (démo)",
+        "activity": "Institut de beauté",
+        "activity_mode": "salon",
+        "phone": "05 00 00 00 02",
+        "email": "contact@institut-lumiere.demo",
+        "slug": "institut-lumiere-demo"
+      },
+      "settings": {
+        "timezone": "Europe/Paris",
+        "default_appointment_minutes": 60,
+        "service_radius_km": null,
+        "booking_enabled": true,
+        "public_description": "Institut fictif de démonstration : soins en cabine uniquement.",
+        "cancellation_notice_hours": 48,
+        "customer_can_cancel": true,
+        "customer_can_reschedule": false,
+        "booking_window_days": 60,
+        "slot_step_minutes": 30
+      },
+      "locations": [
+        {
+          "kind": "salon",
+          "address_line1": "Place Saint-Georges (lieu public, adresse fictive pour la démo)",
+          "postal_code": "31000",
+          "city": "Toulouse"
+        }
+      ],
+      "travel": null,
+      "services": [
+        "Épilation sourcils",
+        "Nettoyage de peau",
+        "Soin anti-âge premium",
+        "Massage relaxant 60 min",
+        "Rehaussement de cils"
+      ],
+      "places": [
+        "salon"
+      ],
+      "availability": [
+        {
+          "weekday": 2,
+          "start": 600,
+          "end": 1140,
+          "place": "salon"
+        },
+        {
+          "weekday": 3,
+          "start": 600,
+          "end": 1140,
+          "place": "salon"
+        },
+        {
+          "weekday": 4,
+          "start": 600,
+          "end": 1140,
+          "place": "salon"
+        },
+        {
+          "weekday": 5,
+          "start": 600,
+          "end": 1140,
+          "place": "salon"
+        },
+        {
+          "weekday": 6,
+          "start": 600,
+          "end": 1140,
+          "place": "salon"
+        }
+      ]
+    }
+  ]
 }

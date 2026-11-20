@@ -442,7 +442,7 @@ export function BookingWizard({
               />
               {place === "home" && travelOn && addressCheck ? (
                 <>
-                  <SummaryRow label="Prestation" value={formatEuros(addressCheck.serviceCents)} />
+                  <SummaryRow label="Prix de la prestation" value={formatEuros(addressCheck.serviceCents)} />
                   <SummaryRow label="Déplacement" value={addressCheck.feeCents > 0 ? `${formatEuros(addressCheck.feeCents)} (${addressCheck.distanceKm.toString().replace(".", ",")} km${addressCheck.zoneName ? ` · ${addressCheck.zoneName}` : ""})` : "Offert"} />
                   <SummaryRow label="Total" value={formatEuros(addressCheck.serviceCents + addressCheck.feeCents)} strong />
                 </>

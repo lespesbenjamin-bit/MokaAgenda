@@ -21,6 +21,7 @@ import { PublicBookingView } from "@/components/booking/public-booking-view";
 import { ManageBookingView } from "@/components/booking/manage-booking-view";
 import { BookingSettingsForm } from "@/components/settings/booking-settings-form";
 import { ShareLink } from "@/components/booking/share-link";
+import { TravelSettingsForm, VehicleForm, LocationGeocoder, AreaForm } from "@/components/travel/travel-forms";
 import { demoFixtures } from "@/server/demo/fixtures";
 import type { PublicPage, PublicService } from "@/lib/domain/public-booking";
 import type { DaySlots, PublicBooking, PublicPageView } from "@/server/services/public-booking";
@@ -324,7 +325,45 @@ export default async function PreviewPage({ params }: { params: Promise<{ ecran:
     reschedule_count: 0,
   };
   publicScreens["rdv-client"] = <ManageBookingView booking={booking} token="apercu" now={now} driver="resend" flags={{ confirmee: true }} />;
+  // Sprint 5 : déplacements (tarifs publics fictifs, adresse vérifiée simulée)
+  const travelPage: PublicPageView = {
+    ...publicPage,
+    travel: { ...f.travel.settings, enabled: true, pricing_mode: "per_km", free_above_cents: null, version: 3, areas: f.travel.areas.map((a, i) => ({ id: `z${i}`, ...a, kind: a.kind as "radius" | "postcodes" })), service_radius_km: null },
+  };
+  const addressCheck = {
+    ok: true as const,
+    geo: { lat: 43.6, lng: 1.44, postcode: "31000", label: "Rue d'Alsace-Lorraine 31000 Toulouse", expires_epoch: 0, signature: "apercu" },
+    label: "Rue d'Alsace-Lorraine 31000 Toulouse",
+    precise: false,
+    postcode: "31000",
+    city: "Toulouse",
+    serviceCents: both.places.find((p) => p.place === "home")!.price_cents,
+    feeCents: 500,
+    feeSteps: ["7,4 km − 5 km inclus = 2,4 km × 0,50 € = 1,20 €.", "Minimum de facturation : 5,00 €."],
+    zoneName: "Toulouse et première couronne",
+    zoneWeekdays: null,
+    distanceKm: 7.4,
+  };
+  publicScreens["reserver-adresse"] = <PublicBookingView page={travelPage} now={now} idempotencyKey="00000000-0000-4000-8000-000000000000" preview={{ step: 1, serviceId: both.id, place: "home", askAddress: true, contact: { address_line1: "Rue d'Alsace-Lorraine", postal_code: "31000", city: "Toulouse" } }} />;
+  publicScreens["reserver-recap-deplacement"] = <PublicBookingView page={travelPage} now={now} idempotencyKey="00000000-0000-4000-8000-000000000000" preview={{ step: 4, serviceId: both.id, place: "home", startsAt: chosen, contact: { ...contact, line1: undefined, address_line1: "Rue d'Alsace-Lorraine" } as never, addressCheck }} />;
   if (publicScreens[ecran]) return publicScreens[ecran];
+
+  screens["parametres-deplacements"] = (
+    <>
+      <PageHeader title="Paramètres" description="Vos trajets, votre véhicule et vos frais de déplacement." />
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_22rem]">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5">
+            <LocationGeocoder kind="travel_base" label="Départ des tournées" address="Allées Jean Jaurès, 31000 Toulouse" located="Allées Jean Jaurès, Toulouse (démo)" />
+            <LocationGeocoder kind="salon" label="Institut" address="Place du Capitole, 31000 Toulouse" located={null} />
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5"><TravelSettingsForm hasBase hasSalon d={{ ...f.travel.settings, pricing_mode: "per_km", start_point: "travel_base", return_point: "travel_base", free_above_cents: null }} /></div>
+          <div className="rounded-2xl border border-border bg-card p-5"><VehicleForm vehicle={null} /></div>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-5"><AreaForm area={null} /></div>
+      </div>
+    </>
+  );
 
   screens["parametres-reservation"] = (
     <>

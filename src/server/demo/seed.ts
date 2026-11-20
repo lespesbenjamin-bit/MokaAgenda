@@ -234,3 +234,48 @@ export function rowsByTable(rows: ReturnType<typeof buildDemoRows>): Record<(typ
     appointment_items: rows.appointment_items,
   };
 }
+
+type ExtraBusiness = (typeof fixtures.extra_businesses)[number];
+
+/**
+ * Professionnelles fictives supplémentaires (Sprint 5) : une 100 % à domicile,
+ * une 100 % en institut. Catalogue réduit, horaires, véhicule et zones ; pas
+ * de clientes (elles servent à tester la réservation en ligne).
+ */
+export function buildExtraBusinessRows(extra: ExtraBusiness, businessId: string, newId: () => string = () => crypto.randomUUID()) {
+  const services: Record<string, unknown>[] = [];
+  const service_locations: Record<string, unknown>[] = [];
+  for (const name of extra.services) {
+    const s = fixtures.services.find((x) => x.name === name)!;
+    const id = newId();
+    services.push({
+      id,
+      business_id: businessId,
+      name: s.name,
+      duration_minutes: s.duration_minutes,
+      prep_minutes: s.prep_minutes,
+      cleanup_minutes: s.cleanup_minutes,
+      buffer_minutes: s.buffer_minutes,
+      base_price_cents: s.base_price_cents,
+      vat_rate_bps: s.vat_rate_bps,
+      deposit_type: s.deposit_type,
+      deposit_value: s.deposit_value,
+      online_bookable: s.online_bookable,
+      is_active: true,
+    });
+    for (const place of extra.places) {
+      const price = (s.places as Record<string, number | null>)[place];
+      service_locations.push({ business_id: businessId, service_id: id, place, price_cents: price ?? null });
+    }
+  }
+  const availability_rules = extra.availability.map((r) => ({ business_id: businessId, weekday: r.weekday, start_minute: r.start, end_minute: r.end, place: r.place }));
+  return { services, service_locations, availability_rules };
+}
+
+/** Véhicule et zones d'une configuration de déplacement fictive. */
+export function buildTravelRows(travel: { vehicle: Record<string, unknown>; areas: Record<string, unknown>[] }, businessId: string) {
+  return {
+    vehicles: [{ ...travel.vehicle, business_id: businessId }],
+    service_areas: travel.areas.map((a) => ({ ...a, business_id: businessId })),
+  };
+}

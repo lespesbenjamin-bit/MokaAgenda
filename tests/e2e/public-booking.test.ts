@@ -45,3 +45,13 @@ describe("lien de gestion d'un rendez-vous", () => {
     if (res.status === 200) expect(await res.text()).toContain("Lien invalide");
   });
 });
+
+describe("pages des déplacements (Sprint 5)", () => {
+  it("réglages, zones et tournées exigent une connexion", async () => {
+    for (const path of ["/parametres/deplacements", "/parametres/zones", "/tournees", "/tournees?date=2027-01-04"]) {
+      const res = await get(path);
+      expect([302, 303, 307, 308]).toContain(res.status);
+      expect(res.headers.get("location") ?? "").toContain("/connexion");
+    }
+  });
+});

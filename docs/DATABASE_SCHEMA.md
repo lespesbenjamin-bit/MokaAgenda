@@ -119,6 +119,25 @@ Extension : `btree_gist` (schéma `extensions`), pour les contraintes d'exclusio
 
 **Annulation / déplacement par la cliente** : selon les règles figées dans `conditions_snapshot` (délai, autorisations) ; 3 déplacements maximum ; historique automatique (auteur vide = cliente).
 
+## Sprint 5 — Déplacements (`20261123000001_sprint5_travel.sql`)
+
+| Table / changement | Rôle | Accès |
+|---|---|---|
+| `private.app_secrets` | clé HMAC `travel_signing` générée en base | aucun rôle client |
+| `travel_settings` (1 par entreprise, créée automatiquement, **désactivée**) | départ/retour, marge (% et min), mode de frais, forfait, €/km, km inclus, min, max, seuil « offert au-delà », TVA des frais, `version` incrémentée à chaque modification | lecture membres, écriture propriétaire (colonnes autorisées) |
+| `vehicles` | type, consommation, prix de l'énergie et usure (millièmes d'€), coût global/km facultatif (remplace énergie + usure), frais fixes, stationnement, coût horaire ; un seul par défaut | lecture membres, écriture propriétaire |
+| `service_areas` | rayon ROUTIER ou codes postaux, exclusion, supplément, minimum de commande, jours, priorité | idem |
+| `geocoded_addresses` | cache de géocodage par entreprise | membres |
+| `travel_estimates` | trajets (distance m, durée s, fournisseur, expiration 90 j, tracé) | lecture membres ; écriture UNIQUEMENT via `record_travel_estimate` (signature) |
+| `locations` + `geocoded_at`, `geocode_label` | points de départ localisés (coordonnées validées obligatoires) | propriétaire |
+| `appointments` + `latitude`, `longitude`, `travel_check` | arrêt du rendez-vous ; `verified` / `not_required` / `skipped_by_pro` | RLS existante |
+| `appointment_items` + `kind` | `service` ou `travel_fee` | RLS existante |
+| `appointment_travel` + coûts | instantané : distance, durée, frais, zone, énergie, usure, temps, autres, coût total, véhicule, version des réglages | RLS existante |
+| `route_plans`, `route_plan_stops` | propositions d'optimisation (`proposed` → `applied`) | membres ; écriture propriétaire + staff |
+| `appointments_no_overlap` | désormais `deferrable initially immediate` (immédiate sauf dans `apply_route_plan`) | — |
+
+**Fonctions** : `record_travel_estimate` (anon/authenticated, signature obligatoire, ≤ 1 j), `server_travel_context` (preuve serveur ≤ 5 min ; arrêts et point de départ), `public_travel_info` (tarifs publics, aucune adresse), `public_booking_coords` (coordonnées du rendez-vous du lien secret), `apply_route_plan` (authenticated), `create_appointment` / `update_appointment` / `public_create_booking` mis à jour. Règles internes : `private.travel_fee_cents`, `private.resolve_area`, `private.travel_cost`, `private.appointment_check_travel` (déclencheur `appointments_35_travel`).
+
 ## Instantanés financiers
 
 `appointment_items` est l'instantané figé (prix, TVA, HT, acompte, coûts directs) : base des analyses du Sprint 6. Un changement de tarif du catalogue ne modifie jamais un rendez-vous existant (testé).

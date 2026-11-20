@@ -1,5 +1,4 @@
 import "server-only";
-import type { LatLng } from "@/lib/domain/travel";
 import { ProviderError, type GeocodeCandidate, type RouteResult, type TravelProvider } from "./provider";
 import { RateLimiter } from "./limiter";
 
