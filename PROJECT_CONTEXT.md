@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT — Moka Réservation
 
 > Fichier de reprise : à fournir en début de toute nouvelle conversation Claude.
-> Dernière mise à jour : 20 novembre 2026 — Sprint 1 validé en production (parcours inscription → onboarding → tableau de bord testé). Sprint 2 : migration exécutée dans Supabase, PR #2 fusionnée et déployée ; recette manuelle en cours. Sprint 3 : PR #3 fusionnée et déployée (20/11). **Sprint 4 (réservation en ligne) développé et testé sur la branche `sprint-4-reservation-en-ligne`** — migration `20261122000001` à exécuter avant fusion. Sprint 5 **non commencé** (attente de validation).
+> Dernière mise à jour : 20 novembre 2026 — Sprint 1 validé en production (parcours inscription → onboarding → tableau de bord testé). Sprint 2 : migration exécutée dans Supabase, PR #2 fusionnée et déployée ; recette manuelle en cours. Sprint 3 : PR #3 fusionnée et déployée (20/11). **Sprint 4 (réservation en ligne) : migration exécutée, PR #4 fusionnée et déployée (20/11) ; recette manuelle à faire.** Sprint 5 **non commencé** (attente de validation).
 
 ## Le produit
 
@@ -60,7 +60,8 @@ Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée 
 - [ ] Sprint 2 : recette `docs/SETUP.md` §4 « Sprint 2 »
 - [x] Sprint 3 : migration exécutée, PR #3 fusionnée et déployée (20/11)
 - [ ] Sprint 3 : recette manuelle §4 « Sprint 3 » (configurer les horaires d'abord)
-- [ ] Sprint 4 : exécuter `supabase/migrations/20261122000001_sprint4_public_booking.sql`, fusionner la PR, activer la page dans Paramètres, recette §4 « Sprint 4 »
+- [x] Sprint 4 : migration exécutée, PR #4 fusionnée et déployée (20/11)
+- [ ] Sprint 4 : activer la page dans Paramètres, recette §4 « Sprint 4 »
 - [ ] Emails de réservation : compte Resend + domaine vérifié, puis `RESEND_API_KEY` et `EMAIL_FROM` dans Vercel (voir `docs/SETUP.md` §5)
 - [ ] Modèles d'emails personnalisés (reportés volontairement ; en attendant, ouvrir le lien de confirmation dans le même navigateur)
 - [ ] SMTP personnalisé avant ouverture aux clientes
