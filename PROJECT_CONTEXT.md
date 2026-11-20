@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT — Moka Réservation
 
 > Fichier de reprise : à fournir en début de toute nouvelle conversation Claude.
-> Dernière mise à jour : 20 novembre 2026 — Sprint 1 validé en production (parcours inscription → onboarding → tableau de bord testé). Sprint 2 : migration exécutée dans Supabase, PR #2 fusionnée et déployée ; recette manuelle en cours. Sprint 3 **non commencé**.
+> Dernière mise à jour : 20 novembre 2026 — Sprint 1 validé en production (parcours inscription → onboarding → tableau de bord testé). Sprint 2 : migration exécutée dans Supabase, PR #2 fusionnée et déployée ; recette manuelle en cours. Sprint 3 : migration exécutée, PR #3 fusionnée et déployée (20/11) ; recette manuelle à faire. Sprint 4 **non commencé** (attente de validation).
 
 ## Le produit
 
@@ -55,7 +55,8 @@ Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée 
 - [x] Parcours Sprint 1 complet validé en production (20/11)
 - [x] Sprint 2 : migration exécutée, PR #2 fusionnée et déployée (20/11)
 - [ ] Sprint 2 : recette `docs/SETUP.md` §4 « Sprint 2 »
-- [ ] Sprint 3 : exécuter `supabase/migrations/20261121000001_sprint3_agenda.sql`, fusionner la PR, recette §4 « Sprint 3 »
+- [x] Sprint 3 : migration exécutée, PR #3 fusionnée et déployée (20/11)
+- [ ] Sprint 3 : recette manuelle §4 « Sprint 3 » (configurer les horaires d'abord)
 - [ ] Modèles d'emails personnalisés (reportés volontairement ; en attendant, ouvrir le lien de confirmation dans le même navigateur)
 - [ ] SMTP personnalisé avant ouverture aux clientes
 - [ ] Projets Supabase + Vercel de démonstration
