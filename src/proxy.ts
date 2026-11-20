@@ -36,5 +36,5 @@ function withCookies(redirect: NextResponse, source: NextResponse): NextResponse
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/demo|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/demo|api/stripe|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };

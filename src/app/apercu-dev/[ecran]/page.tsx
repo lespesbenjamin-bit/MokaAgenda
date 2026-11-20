@@ -9,7 +9,10 @@ import { CategoryManager } from "@/components/catalog/category-manager";
 import { CustomersBrowser } from "@/components/customers/customers-browser";
 import { AddressesManager, ConsentsForm, CustomerIdentityForm } from "@/components/customers/customer-forms";
 import { ImportWizard } from "@/components/customers/import-wizard";
-import { buildDemoRows } from "@/server/demo/seed";
+import { buildDemoRows, buildFinanceDemoRows } from "@/server/demo/seed";
+import { FinanceDashboardView } from "@/components/finance/dashboard-view";
+import { ExpenseList, FinancialSettingsForm, ManualPaymentForm } from "@/components/finance/finance-forms";
+import { periodFor, revenueSeries, summarize, type FinAppointment } from "@/lib/domain/finance";
 import { appEnv } from "@/lib/env";
 import { AgendaCalendar } from "@/components/agenda/agenda-calendar";
 import { AppointmentForm } from "@/components/agenda/appointment-form";
@@ -346,7 +349,59 @@ export default async function PreviewPage({ params }: { params: Promise<{ ecran:
   };
   publicScreens["reserver-adresse"] = <PublicBookingView page={travelPage} now={now} idempotencyKey="00000000-0000-4000-8000-000000000000" preview={{ step: 1, serviceId: both.id, place: "home", askAddress: true, contact: { address_line1: "Rue d'Alsace-Lorraine", postal_code: "31000", city: "Toulouse" } }} />;
   publicScreens["reserver-recap-deplacement"] = <PublicBookingView page={travelPage} now={now} idempotencyKey="00000000-0000-4000-8000-000000000000" preview={{ step: 4, serviceId: both.id, place: "home", startsAt: chosen, contact: { ...contact, line1: undefined, address_line1: "Rue d'Alsace-Lorraine" } as never, addressCheck }} />;
+  // Sprint 6 : arrhes payées en ligne (compte Stripe actif simulé)
+  const depositService = publicPage.services.find((x) => x.deposit_type !== "none" && x.places.some((p) => p.place === "salon"));
+  if (depositService) {
+    const payPage: PublicPageView = { ...publicPage, payment: { online: true, deposit_kind: "arrhes", deposit_terms: null } };
+    publicScreens["reserver-recap-arrhes"] = <PublicBookingView page={payPage} now={now} idempotencyKey="00000000-0000-4000-8000-000000000000" preview={{ step: 4, serviceId: depositService.id, place: "salon", startsAt: chosen, contact }} />;
+    publicScreens["reserver-liste-arrhes"] = <PublicBookingView page={payPage} now={now} idempotencyKey="00000000-0000-4000-8000-000000000000" />;
+  }
   if (publicScreens[ecran]) return publicScreens[ecran];
+
+  // Sprint 6 : finances (données fictives en mémoire, sans base)
+  const fin = buildFinanceDemoRows(rows, "demo", now);
+  const finAppts: FinAppointment[] = (rows.appointments as Record<string, unknown>[]).map((a) => ({
+    id: a.id as string,
+    startsAt: a.starts_at as string,
+    status: a.status as FinAppointment["status"],
+    place: a.place as "home" | "salon",
+    customerId: a.customer_id as string,
+    durationMinutes: a.duration_minutes as number,
+    prepMinutes: a.prep_minutes as number,
+    cleanupMinutes: a.cleanup_minutes as number,
+    bufferMinutes: a.buffer_minutes as number,
+    priceTotalCents: a.price_total_cents as number,
+    items: (rows.appointment_items as Record<string, unknown>[]).filter((i) => i.appointment_id === a.id).map((i) => ({
+      serviceId: i.service_id as string, serviceName: i.service_name as string, kind: "service" as const, unitPriceCents: i.unit_price_cents as number, extraFeeCents: 0,
+      vatRateBps: i.vat_rate_bps as number, durationMinutes: i.duration_minutes as number, consumablesCents: i.consumables_cents as number, productsCents: i.products_cents as number, otherCostsCents: i.other_costs_cents as number,
+    })),
+    travel: null,
+  }));
+  const month = periodFor("month", now, TZ);
+  const finInput = {
+    period: month, now, zone: TZ,
+    settings: { vatStatus: "franchise" as const, contributionRateBps: 2120, contributionBase: "revenue" as const, taxProvisionRateBps: 170, taxProvisionBase: "revenue" as const },
+    appointments: finAppts,
+    payments: fin.payments.map((p) => ({ id: p.id as string, appointmentId: p.appointment_id as string, kind: p.kind as "deposit", method: p.method as string, status: p.status as "succeeded", amountCents: p.amount_cents as number, feeCents: (p.fee_cents as number) ?? null, receivedAt: p.received_at as string })),
+    refunds: fin.refunds.map((r) => ({ paymentId: r.payment_id as string, amountCents: r.amount_cents as number, status: r.status as string, processedAt: r.processed_at as string, createdAt: r.created_at as string })),
+    payouts: fin.payouts.map((p) => ({ amountCents: p.amount_cents as number, status: p.status as string, arrivalDate: p.arrival_date as string })),
+    expenses: fin.fixed_expenses.map((e, i) => ({ id: `e${i}`, label: e.label, category: e.category, amountCents: e.amount_cents, frequency: e.frequency as "monthly", startsOn: e.starts_on, endsOn: null, archivedAt: null })),
+    adjustments: [],
+    categories: Object.fromEntries((rows.services as Record<string, unknown>[]).map((sv) => [sv.id as string, cats.find((c) => c.id === sv.category_id)?.name ?? "Sans catégorie"])),
+  };
+  screens["finances-tableau-de-bord"] = <FinanceDashboardView sel={{ key: "month", from: "", to: "" }} label="mois en cours (démo)" summary={summarize(finInput)} series={revenueSeries(finInput)} />;
+  screens["parametres-finances"] = (
+    <>
+      <PageHeader title="Paramètres" description="Votre régime, la TVA, vos cotisations estimées et vos charges fixes." />
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-card p-5"><FinancialSettingsForm d={{ ...fin.settings, deposit_kind: "arrhes", deposit_terms: null }} /></div>
+        <div className="flex flex-col gap-6">
+          <div className="rounded-2xl border border-border bg-card p-5"><ExpenseList expenses={finInput.expenses} /></div>
+          <div className="rounded-2xl border border-border bg-card p-5"><ManualPaymentForm appointmentId="00000000-0000-4000-8000-000000000001" remainingCents={4200} idempotencyKey="00000000-0000-4000-8000-000000000002" /></div>
+        </div>
+      </div>
+    </>
+  );
 
   screens["parametres-deplacements"] = (
     <>

@@ -49,7 +49,12 @@ Blanc `#FFFFFF`, surface `#FAFAFA`, orange vif `#FF6B2C` (accents), orange fort 
 | **Mes tournées** (/tournees) : carte, ordre, km, temps de route, coût, frais, temps non productif ; « Optimiser » propose, rien n'est appliqué sans validation | ✅ Sprint 5 |
 | Réservation publique à domicile : adresse vérifiée, zone, frais affichés avant confirmation, seuls les créneaux compatibles avec les trajets | ✅ Sprint 5 |
 | Rentabilité indicative par rendez-vous (marge avant charges fixes, coût du temps, €/h) | ✅ Sprint 5 |
-| Stripe (acomptes), finances complètes, boutique | non commencés |
+| **Finances** (/finances) : tableau de bord (CA réalisé / prévisionnel / à clôturer, HT, TVA, TTC, encaissements, frais Stripe, virements, charges décaissées vs estimées, charges fixes proratisées, marge, résultat, cotisations, revenu disponible estimé, évolution), rentabilité par prestation, paiements, objectifs + simulation, exports CSV | ✅ Sprint 6 — testé (unitaires, PostgreSQL, HTTP, visuel) — **SQL à exécuter, recette à faire** |
+| Paramètres → Finances (régime, TVA, cotisations paramétrables, provision, charges fixes, arrhes/acompte) et → Paiement en ligne (Stripe Connect) | ✅ Sprint 6 |
+| **Arrhes en ligne Stripe** (Connect, paiement direct sur le compte de la pro, réservation temporaire 35 min, confirmation uniquement par webhook signé, remboursement automatique si créneau perdu) | ✅ Sprint 6 — testé avec événements Stripe simulés ; **aucun appel réel à Stripe vérifié** (compte Stripe à créer) |
+| Règlements sur la fiche RDV (espèces, carte, virement, chèque), validation explicite, remboursements, écritures d'ajustement, registre immuable | ✅ Sprint 6 |
+| Fiche cliente → Finances (RDV terminés, CA, panier, dernière visite, fréquence, marge estimée) | ✅ Sprint 6 |
+| Boutique, abonnements Moka, rappels automatiques | non commencés |
 
 Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée sur https://moka-agenda.vercel.app.
 
@@ -67,7 +72,8 @@ Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée 
 - [ ] Sprint 3 : recette manuelle §4 « Sprint 3 » (configurer les horaires d'abord)
 - [x] Sprint 4 : migration exécutée, PR #4 fusionnée et déployée (20/11)
 - [ ] Sprint 4 : activer la page dans Paramètres, recette §4 « Sprint 4 »
-- [ ] Sprint 5 : exécuter `supabase/migrations/20261123000001_sprint5_travel.sql`, copier la clé `travel_signing` dans Vercel (`TRAVEL_SIGNING_SECRET`), fusionner, puis Paramètres → Déplacements (voir `docs/SETUP.md` §6)
+- [x] Sprint 5 : migration exécutée, clé installée, PR #5 fusionnée et déployée (20/11)
+- [ ] Sprint 6 : exécuter `supabase/migrations/20261124000001_sprint6_finances_paiements.sql`, fusionner, puis Stripe (compte plateforme en mode test, Connect, webhook, variables — voir `docs/SETUP.md` §7)
 - [ ] Emails de réservation : compte Resend + domaine vérifié, puis `RESEND_API_KEY` et `EMAIL_FROM` dans Vercel (voir `docs/SETUP.md` §5)
 - [ ] Modèles d'emails personnalisés (reportés volontairement ; en attendant, ouvrir le lien de confirmation dans le même navigateur)
 - [ ] SMTP personnalisé avant ouverture aux clientes

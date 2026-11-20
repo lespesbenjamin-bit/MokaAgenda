@@ -79,7 +79,7 @@ export function FinancialSettingsForm({ d }: { d: { activity_regime: string; vat
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Taux de cotisations sociales estimé (%)" name="contribution_rate" inputMode="decimal" defaultValue={v("contribution_rate", bpsToInput(d.contribution_rate_bps))} error={e.contribution_rate} hint="Votre taux réel : voir votre espace URSSAF ou votre comptable." />
-        <SelectField label="Appliqué sur" name="contribution_base" value={v("contribution_base", d.contribution_base)} options={[["revenue", "le chiffre d'affaires HT (micro-entreprise)"], ["profit", "le résultat estimé"]]} error={e.contribution_base} />
+        <SelectField label="Appliqué sur" name="contribution_base" value={v("contribution_base", d.contribution_base)} options={[["revenue", "le CA HT (micro)"], ["profit", "le résultat estimé"]]} error={e.contribution_base} />
         <Field label="Provision fiscale indicative (%)" name="tax_provision_rate" inputMode="decimal" defaultValue={v("tax_provision_rate", bpsToInput(d.tax_provision_rate_bps))} error={e.tax_provision_rate} hint="Montant mis de côté pour l'impôt (ex. versement libératoire)." />
         <SelectField label="Appliquée sur" name="tax_provision_base" value={v("tax_provision_base", d.tax_provision_base)} options={[["revenue", "le chiffre d'affaires HT"], ["profit", "le résultat estimé"]]} error={e.tax_provision_base} />
       </div>
@@ -200,7 +200,7 @@ export function ManualPaymentForm({ appointmentId, remainingCents, idempotencyKe
       <input type="hidden" name="idempotency_key" value={idempotencyKey} />
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="Montant (€)" name="amount" inputMode="decimal" defaultValue={v("amount", centsToInput(remainingCents))} error={e.amount} />
-        <SelectField label="Moyen" name="method" value={v("method", "card_terminal")} options={[["card_terminal", "Carte (terminal)"], ["cash", "Espèces"], ["transfer", "Virement"], ["check", "Chèque"], ["other", "Autre"]]} error={e.method} />
+        <SelectField label="Moyen" name="method" value={v("method", "card_terminal")} options={[["card_terminal", "Carte (TPE)"], ["cash", "Espèces"], ["transfer", "Virement"], ["check", "Chèque"], ["other", "Autre"]]} error={e.method} />
         <Field label="Reçu le" name="received_on" type="date" defaultValue={v("received_on", new Date().toISOString().slice(0, 10))} error={e.received_on} />
       </div>
       <SelectField label="Type" name="kind" value={v("kind", "balance")} options={[["balance", "Solde de la prestation"], ["deposit", "Arrhes / acompte"], ["other", "Autre"]]} />

@@ -110,6 +110,19 @@ Les Sprints 2 et 3 n'ajoutent **aucune** variable en production. Le Sprint 4 ajo
 - [ ] Mes tournées : carte, ordre, km et coût ; « Optimiser ma tournée » → proposition, rien ne change tant qu'on n'a pas validé
 - [ ] Désactiver les déplacements → l'agenda accepte de nouveau deux RDV rapprochés (comportement d'avant)
 
+### Sprint 6 — finances et arrhes
+- [ ] Paramètres → Finances : régime, statut TVA, taux de cotisations (le vôtre), une charge fixe (loyer) ; Enregistrer
+- [ ] Finances : choisir « Ce mois », puis une période personnalisée ; vérifier que les rendez-vous **terminés** comptent dans le réalisé et les rendez-vous à venir dans le prévisionnel
+- [ ] Fiche d'un rendez-vous terminé : « Enregistrer un règlement » sans cocher la confirmation → « À valider », non compté ; « Valider » → compté dans « Encaissé »
+- [ ] Rembourser une partie de ce règlement → l'encaissé net baisse ; une écriture d'ajustement apparaît dans Finances → Paiements quand vous en saisissez une
+- [ ] Finances → Exports : ouvrir chaque CSV dans un tableur
+- [ ] Objectifs : saisir un objectif de CA → progression et simulation
+- [ ] (Après §7) Paramètres → Paiement en ligne → « Connecter mon compte Stripe » (mode test) → retour sur Moka : « Paiements acceptés »
+- [ ] Mettre des arrhes de 30 % sur une prestation ; page publique en navigation privée → « Payer … et réserver » → carte de test `4242 4242 4242 4242`, date future, CVC 123 → retour « Confirmation en cours » puis page du rendez-vous confirmé ; l'agenda affiche le RDV, Finances → Paiements affiche l'encaissement et les frais Stripe
+- [ ] Recommencer et cliquer « Retour » sur la page Stripe → « Paiement non finalisé » → « Annuler cette réservation » → le créneau redevient libre
+- [ ] Carte refusée `4000 0000 0000 0002` → Stripe affiche le refus, aucun rendez-vous créé
+- [ ] Rembourser les arrhes depuis la fiche du rendez-vous → statut « effectué » après confirmation Stripe
+
 ### Sprint 4 — réservation en ligne
 - [ ] Paramètres → Réservation en ligne : cocher « Activer », renseigner présentation, téléphone, politique d'annulation ; Enregistrer
 - [ ] Cliquer « Voir ma page » : logo, présentation, prestations et prix corrects ; prestations avec acompte affichées mais non réservables
@@ -153,3 +166,27 @@ La base n'accepte que des trajets signés par le serveur. La clé est créée **
 Projet démo : même procédure avec la base démo (sa clé est différente).
 
 Fournisseur : IGN Géoplateforme, gratuit et sans clé. Limites publiques : géocodage 50 requêtes/s, itinéraire 5 requêtes/s par adresse IP. Aucun compte à créer.
+
+## 7. Paiement en ligne des arrhes (Stripe Connect) — Sprint 6
+
+Modèle : **paiement direct** sur le compte Stripe de chaque professionnelle (Stripe Connect). L'argent ne transite jamais par le compte Moka ; Moka ne prend pas de commission ; chaque professionnelle paie elle-même les frais Stripe sur son compte. Aucun numéro de carte n'est stocké par Moka.
+
+**Commencer en mode TEST** (aucun argent réel) :
+
+1. Créer un compte sur https://dashboard.stripe.com/register (compte « plateforme » de Moka). Rester en **mode test** (interrupteur « Test mode »).
+2. **Connect → Get started** : choisir une plateforme où les professionnelles « vendent directement » (paiements directs), compte avec **tableau de bord Stripe complet**. Valider le profil de plateforme demandé par Stripe.
+3. **Developers → API keys** : copier la **Secret key** `sk_test_...`.
+4. **Developers → Webhooks → Add endpoint** :
+   - URL : `https://moka-agenda.vercel.app/api/stripe/webhook`
+   - **Listen to : Events on Connected accounts**
+   - Événements : `checkout.session.completed`, `checkout.session.expired`, `checkout.session.async_payment_succeeded`, `account.updated`, `charge.refunded`, `refund.created`, `refund.updated`, `charge.dispute.created`, `charge.dispute.updated`, `charge.dispute.closed`, `payout.created`, `payout.updated`, `payout.paid`, `payout.failed`, `payout.canceled`
+   - Copier le **Signing secret** `whsec_...`
+5. Vercel → `moka-agenda` → Settings → Environment Variables (Production et Preview) :
+   - `STRIPE_SECRET_KEY` = `sk_test_...`
+   - `STRIPE_WEBHOOK_SECRET` = `whsec_...`
+   - `CRON_SECRET` = 32 caractères aléatoires ou plus (réconciliation quotidienne `/api/stripe/reconcile`, déjà planifiée dans `vercel.json`)
+6. Redéployer, puis Paramètres → Paiement en ligne → « Connecter mon compte Stripe ».
+
+Garde-fous : une clé `sk_live_` est **refusée** hors production (démo, poste local). La démo n'utilise que des clés de test. Passer en réel = remplacer les deux valeurs par les clés **live** et créer le webhook en mode live — à faire seulement après validation de la recette et relecture juridique des conditions (arrhes / acompte).
+
+Variables : `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CRON_SECRET` (serveur uniquement, jamais `NEXT_PUBLIC_`). La signature des opérations de paiement réutilise `TRAVEL_SIGNING_SECRET` (§6).

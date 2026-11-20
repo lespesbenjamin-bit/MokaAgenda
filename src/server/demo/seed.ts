@@ -279,3 +279,70 @@ export function buildTravelRows(travel: { vehicle: Record<string, unknown>; area
     service_areas: travel.areas.map((a) => ({ ...a, business_id: businessId })),
   };
 }
+
+/**
+ * Finances fictives (Sprint 6), cohérentes avec les rendez-vous générés :
+ * arrhes « en ligne » (identifiants Stripe fictifs préfixés demo), soldes,
+ * quelques soldes non réglés, un règlement à valider, des arrhes remboursées,
+ * des virements Stripe, charges fixes, paramètres et objectifs.
+ * Aucune donnée réelle, aucun appel à Stripe.
+ */
+export function buildFinanceDemoRows(rows: ReturnType<typeof buildDemoRows>, businessId: string, now: Date = new Date(), newId: () => string = () => crypto.randomUUID()) {
+  const f = fixtures.finance;
+  const payments: Record<string, unknown>[] = [];
+  const refunds: Record<string, unknown>[] = [];
+  const payouts: Record<string, unknown>[] = [];
+  const stripeFee = (cents: number) => Math.round(cents * 0.015) + 25; // tarif standard cartes EEE, valeur d'exemple
+  let k = 0;
+  const methods = ["card_terminal", "cash", "card_terminal", "transfer"] as const;
+  for (const a of rows.appointments as { id: string; customer_id: string; status: string; starts_at: string; price_total_cents: number; deposit_amount_cents: number }[]) {
+    k++;
+    const start = new Date(a.starts_at);
+    const paidAt = (minutesBefore: number) => new Date(start.getTime() - minutesBefore * 60_000).toISOString();
+    const base = { business_id: businessId, appointment_id: a.id, customer_id: a.customer_id, currency: "eur" };
+    let depositId: string | null = null;
+    if (a.deposit_amount_cents > 0 && a.status !== "pending") {
+      depositId = newId();
+      payments.push({
+        ...base, id: depositId, kind: "deposit", method: "card_online", status: "succeeded", amount_cents: a.deposit_amount_cents,
+        fee_cents: stripeFee(a.deposit_amount_cents), livemode: false, stripe_payment_intent_id: `pi_demo_${k}`, stripe_checkout_session_id: `cs_demo_${k}`,
+        received_at: paidAt(3 * 24 * 60), validated_at: paidAt(3 * 24 * 60),
+      });
+    }
+    if (a.status === "completed" && start <= now) {
+      const balance = a.price_total_cents - (depositId ? a.deposit_amount_cents : 0);
+      if (balance > 0 && k % 11 !== 0) {
+        const pending = k % 17 === 0 && now.getTime() - start.getTime() < 7 * 86_400_000;
+        payments.push({
+          ...base, id: newId(), kind: "balance", method: methods[k % methods.length], status: pending ? "pending" : "succeeded", amount_cents: balance,
+          received_at: new Date(start.getTime() + 90 * 60_000).toISOString(), validated_at: pending ? null : new Date(start.getTime() + 90 * 60_000).toISOString(),
+          note: pending ? "Virement annoncé par la cliente (fictif)" : null,
+        });
+      }
+    }
+    if (a.status === "cancelled" && depositId && k % 2 === 0) {
+      refunds.push({ business_id: businessId, payment_id: depositId, amount_cents: a.deposit_amount_cents, status: "succeeded", reason: "cancellation", stripe_refund_id: `re_demo_${k}`, created_at: paidAt(24 * 60), processed_at: paidAt(24 * 60), note: "Remboursement fictif (démo)" });
+    }
+  }
+  // Au moins un remboursement partiel fictif (geste commercial) pour illustrer l'historique.
+  const firstOnline = payments.find((p) => p.method === "card_online" && p.status === "succeeded" && !refunds.some((r) => r.payment_id === p.id));
+  if (firstOnline) {
+    const at = new Date(new Date(firstOnline.received_at as string).getTime() + 86_400_000).toISOString();
+    refunds.push({ business_id: businessId, payment_id: firstOnline.id, amount_cents: Math.min(500, firstOnline.amount_cents as number), status: "succeeded", reason: "customer_request", stripe_refund_id: "re_demo_geste", created_at: at, processed_at: at, note: "Geste commercial fictif (démo)" });
+  }
+  // Virements Stripe hebdomadaires fictifs (somme des arrhes nettes de frais de la semaine précédente)
+  const online = payments.filter((p) => p.method === "card_online");
+  for (let w = 1; w <= 8; w++) {
+    const to = new Date(now.getTime() - (w - 1) * 7 * 86_400_000);
+    const from = new Date(to.getTime() - 7 * 86_400_000);
+    const sum = online.filter((p) => new Date(p.received_at as string) >= from && new Date(p.received_at as string) < to).reduce((s, p) => s + (p.amount_cents as number) - (p.fee_cents as number), 0);
+    if (sum > 0) payouts.push({ business_id: businessId, stripe_payout_id: `po_demo_${w}`, amount_cents: sum, currency: "eur", status: "paid", arrival_date: new Date(to.getTime() + 2 * 86_400_000 > now.getTime() ? now.getTime() - 3600_000 : to.getTime() + 2 * 86_400_000).toISOString() });
+  }
+  const monthsAgo = (m: number) => {
+    const d = new Date(now);
+    d.setUTCMonth(d.getUTCMonth() - m, 1);
+    return d.toISOString().slice(0, 10);
+  };
+  const fixed_expenses = f.fixed_expenses.map(({ months_ago, ...e }) => ({ business_id: businessId, ...e, starts_on: monthsAgo(months_ago) }));
+  return { payments, refunds, payouts, fixed_expenses, settings: f.settings, goals: f.goals };
+}

@@ -100,6 +100,44 @@ PostgreSQL : travel_estimates (seuls les trajets signés), déclencheur appointm
 - **Tournées** (`services/tours.ts`) : trajets depuis le cache puis le fournisseur ; proposition enregistrée (`route_plans`), appliquée par `apply_route_plan` (tout ou rien, contrainte anti-chevauchement différée, trajets revérifiés).
 - **Carte** : Leaflet + fond « Plan IGN » (WMTS Géoplateforme), chargé côté navigateur uniquement.
 
+## Finances et paiements (Sprint 6)
+
+**Couches.** `src/lib/domain/finance.ts` (calculs purs, testés) ; `src/server/repositories/finance.ts` (lectures RLS, client de l'utilisatrice) ; `src/server/services/finance.ts` (périodes, exports CSV) ; `src/server/payments/` (`stripe.ts` configuration, `signing.ts` opérations signées + chiffrement du lien, `service.ts` Connect, Checkout, webhook, remboursements, réconciliation) ; routes `api/stripe/webhook`, `api/stripe/reconcile` (tâche planifiée), `api/finances/export`.
+
+**Modèle de paiement.** Stripe Connect, *paiement direct* : chaque professionnelle a son compte Stripe (API Accounts v1 avec propriétés de contrôleur : frais payés par le compte, pertes portées par Stripe, tableau de bord complet), les sessions Checkout sont créées **sur son compte** (`Stripe-Account`), carte uniquement. Aucune commission Moka (`application_fee_amount` non utilisé).
+
+**Parcours des arrhes.**
+1. `public_create_booking` (base) recalcule prix et arrhes, fait un **essai complet** (cliente, adresse, rendez-vous et tous les déclencheurs) annulé aussitôt, puis crée une réservation temporaire `booking_holds` (35 min) sous le verrou de l'agenda ;
+2. le serveur crée la session Checkout (expiration 30 min < 35 min, clé d'idempotence = réservation), dépose le lien de gestion dans un cookie `httpOnly` et redirige ;
+3. **seul** l'événement Stripe signé (`checkout.session.completed`) déclenche `server_payment_op('checkout_completed')` : verrou, nouvelle vérification complète du créneau, création du rendez-vous et du paiement dans la même transaction ; email envoyé avec le lien de gestion (chiffré AES-256-GCM pendant le paiement) ;
+4. créneau perdu ou montant incohérent → paiement enregistré + remboursement intégral demandé puis exécuté chez Stripe (clé d'idempotence = remboursement), email à la cliente ;
+5. abandon : expiration Stripe → réservation libérée ; « Annuler » expire d'abord la session chez Stripe.
+
+**Fiabilité.** Signature Stripe vérifiée sur le corps brut ; journal `payment_events` (identifiant unique → doublons ignorés) ; erreur → HTTP 500 pour que Stripe réessaie (événements dans le désordre : un remboursement d'un paiement inconnu est refusé puis rejoué) ; états horodatés (`last_event_at`) pour ne jamais revenir en arrière ; réconciliation quotidienne et bouton « Actualiser et resynchroniser » (sessions des 48 h, remboursements non exécutés). Le retour du navigateur ne confirme jamais rien.
+
+**Écritures.** Le registre (`payments`, `refunds`, `payment_disputes`, `payouts`, `payment_events`) n'est écrit que par des fonctions de la base : opérations serveur signées (HMAC, clé `TRAVEL_SIGNING_SECRET`) ou fonctions `security definer` réservées à la propriétaire (`record_manual_payment`, `validate_manual_payment`, `request_refund`). Montants, moyens, dates et liens d'un paiement sont immuables ; corrections = `financial_adjustments` (insertion seule).
+
+### Formules financières (montants en centimes)
+
+| Indicateur | Formule |
+|---|---|
+| CA réalisé | rendez-vous **terminés** de la période : Σ (prix appliqué + supplément) TTC des lignes figées ; HT = TTC / (1 + TVA) par ligne, arrondi au centime ; **franchise : HT = TTC, TVA = 0** ; + arrhes conservées sur annulations/absences (hypothèse HT = TTC, à confirmer avec le comptable) + ajustements de CA |
+| CA prévisionnel | rendez-vous confirmés ou en attente, **à venir** ; les passés non clôturés sont affichés à part (« à clôturer ») et comptés nulle part |
+| Encaissé | paiements **validés** reçus dans la période − remboursements effectués dans la période ± ajustements d'encaissement ; un règlement « à valider » n'est jamais compté |
+| Reste à encaisser | Σ max(0, prix − (payé − remboursé)) des rendez-vous non annulés de la période |
+| Charges décaissées | consommables + produits + coûts directs (lignes figées) + énergie et péages/stationnement/frais par trajet + frais de paiement Stripe (+ ajustements) |
+| Coûts estimés | usure du véhicule (ou coût kilométrique global) ; la valorisation du temps de trajet est affichée mais **hors marge** |
+| Charges fixes | montant × (12, 4 ou 1) × jours communs à la période et à la charge / 365 (fuseau de l'entreprise) |
+| Marge contributive | CA réalisé HT − charges décaissées − usure estimée ; taux = marge / CA HT |
+| Résultat d'exploitation estimé | marge − charges fixes |
+| Cotisations, provision | taux saisi × (CA HT réalisé **ou** max(0, résultat)) selon le choix de la professionnelle ; aucun taux par défaut |
+| Revenu disponible estimé | résultat − cotisations − provision (estimation de gestion, pas un solde bancaire) |
+| Rentabilité horaire | marge × 60 / minutes mobilisées (préparation + prestation + nettoyage + tampon + trajet) |
+| Rentabilité par prestation | coûts de trajet et frais de paiement d'un rendez-vous répartis au prorata du HT des prestations, temps au prorata des durées ; classements à partir de 5 réalisations |
+| Simulation d'objectif | ⌈(objectif − (réalisé + prévisionnel)) / CA HT moyen des rendez-vous terminés des 90 derniers jours⌉ ; refusée sous 5 observations |
+
+**Limites connues.** Les données d'une période sont chargées en mémoire (pagination de 1 000 lignes) : adapté à une activité individuelle, à revoir au-delà de quelques dizaines de milliers de rendez-vous. Le statut des comptes s'appuie sur `charges_enabled` (API v1) ; Stripe recommande désormais l'API Accounts v2 (migration prévue). Le traitement fiscal des arrhes conservées est une hypothèse affichée.
+
 ## Choix techniques
 
 - Next.js 16 **sans Cache Components** (application authentifiée, rendu dynamique plus simple et sans risque de cache croisé entre entreprises).

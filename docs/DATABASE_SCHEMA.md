@@ -138,10 +138,29 @@ Extension : `btree_gist` (schéma `extensions`), pour les contraintes d'exclusio
 
 **Fonctions** : `record_travel_estimate` (anon/authenticated, signature obligatoire, ≤ 1 j), `server_travel_context` (preuve serveur ≤ 5 min ; arrêts et point de départ), `public_travel_info` (tarifs publics, aucune adresse), `public_booking_coords` (coordonnées du rendez-vous du lien secret), `apply_route_plan` (authenticated), `create_appointment` / `update_appointment` / `public_create_booking` mis à jour. Règles internes : `private.travel_fee_cents`, `private.resolve_area`, `private.travel_cost`, `private.appointment_check_travel` (déclencheur `appointments_35_travel`).
 
+## Sprint 6 — Finances et paiements (`20261124000001_sprint6_finances_paiements.sql`)
+
+| Table | Rôle | Accès |
+|---|---|---|
+| `financial_settings` | régime, statut TVA, taux de cotisations et de provision (points de base) et leur base, nature arrhes/acompte, texte affiché ; versionnée | propriétaire (lecture + écriture par colonnes) ; créée pour chaque entreprise |
+| `fixed_expenses` | charges fixes : catégorie, montant, fréquence, début/fin, archivage | propriétaire |
+| `financial_goals` | objectifs mensuels (CA HT, revenu disponible, RDV, marge/heure) | propriétaire |
+| `payment_accounts` | compte Stripe connecté (`acct_…`), mode, paiements/virements activés, informations manquantes | lecture propriétaire ; écriture par opération serveur signée |
+| `booking_holds` (complétée) | statut (`open`, `converted`, `expired`, `cancelled`, `refund_required`), charge utile de la réservation, lien chiffré, montants, coordonnées vérifiées, session Checkout unique | aucune politique (serveur) |
+| `payments` | registre : type (arrhes, solde, autre), moyen, statut (`pending` → `succeeded`/`cancelled`), montant, devise, frais Stripe, identifiants Stripe uniques, validation | lecture propriétaire ; **aucune écriture directe** ; immuable (déclencheur) |
+| `refunds` | remboursements (demandé → en cours → effectué/échoué), motif, identifiant Stripe unique | idem ; somme plafonnée au montant payé |
+| `payment_disputes`, `payouts` | contestations, virements Stripe vers la banque | lecture propriétaire |
+| `payment_events` | journal des événements Stripe (identifiant, type, statut de traitement, essais, erreur courte ; aucun contenu personnel) | lecture propriétaire |
+| `financial_adjustments` | écritures d'ajustement signées (montant ≠ 0, motif obligatoire) | propriétaire : insertion seule |
+
+**Fonctions** : `private.online_booking` (ancien corps de `public_create_booking` + arrhes + essai complet + réservation temporaire ; `public_create_booking` l'appelle), `private.confirm_paid_hold`, `public.server_payment_op` (opérations signées : `event_begin/finish`, `account_link/sync`, `checkout_attach/expired/completed`, `hold_cancel`, `payment_fee`, `refund_sync`, `dispute_sync`, `payout_sync`, `reconcile_targets`), `public.record_manual_payment`, `public.validate_manual_payment`, `public.request_refund`, `public.public_hold_status`, `public.public_payment_info`, `private.refresh_payment_status` (statut `payment_status` du rendez-vous recalculé depuis le registre).
+
+**Immuabilité** : `payments_guard`, `refunds_guard`, `adjustments_guard` refusent modification et suppression (sauf suppression en cascade d'une entreprise entière, ex. réinitialisation de la démo).
+
 ## Instantanés financiers
 
 `appointment_items` est l'instantané figé (prix, TVA, HT, acompte, coûts directs) : base des analyses du Sprint 6. Un changement de tarif du catalogue ne modifie jamais un rendez-vous existant (testé).
 
 ## Tables futures (non créées)
 
-`payments`, `transport_profiles`, `financial_settings`. Chacune portera `business_id`, des clés composites vers les tables existantes et les mêmes politiques.
+`transport_profiles` (remplacé par `vehicles`, Sprint 5). Les autres tables prévues existent désormais.
