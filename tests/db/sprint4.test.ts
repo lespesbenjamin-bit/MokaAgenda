@@ -217,10 +217,10 @@ describe("réservation en institut", () => {
 });
 
 describe("contrôles", () => {
-  it("prestations inactives, sur devis, avec acompte ou lieu non proposé : refusées", async () => {
+  it("prestations inactives, sur devis, avec arrhes sans compte de paiement ou lieu non proposé : refusées", async () => {
     await expectError(book(bookingPayload({ service_id: svcInactive, starts_at: at(16).toISOString() })), "MOKA_SERVICE_UNAVAILABLE");
     await expectError(book(bookingPayload({ service_id: svcOffline, starts_at: at(16).toISOString() })), "MOKA_SERVICE_UNAVAILABLE");
-    await expectError(book(bookingPayload({ service_id: svcDeposit, starts_at: at(16).toISOString() })), "MOKA_DEPOSIT_REQUIRED");
+    await expectError(book(bookingPayload({ service_id: svcDeposit, starts_at: at(16).toISOString() })), "MOKA_PAYMENT_UNAVAILABLE");
     await expectError(book(bookingPayload({ service_id: svcSalonOnly, place: "home", starts_at: at(16).toISOString(), address_line1: "1 rue", postal_code: "31000", city: "Toulouse" })), "MOKA_PLACE_UNAVAILABLE");
     await expectError(book(bookingPayload({ service_id: svcB, starts_at: at(16).toISOString() })), "MOKA_SERVICE_UNAVAILABLE");
   });
