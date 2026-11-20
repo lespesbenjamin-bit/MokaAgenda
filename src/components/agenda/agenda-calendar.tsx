@@ -12,7 +12,7 @@ import luxonPlugin from "@fullcalendar/luxon3";
 import frLocale from "@fullcalendar/core/locales/fr";
 import type { DateSelectArg, DatesSetArg, EventClickArg, EventContentArg, EventDropArg, EventInput } from "@fullcalendar/core";
 import type { EventResizeDoneArg } from "@fullcalendar/interaction";
-import { ChevronLeft, ChevronRight, Clock, Home, Loader2, Plus, Settings2, Store } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Home, Loader2, Plus, Settings2, Store, Route } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Label, Select } from "@/components/ui/input";
@@ -227,6 +227,11 @@ export function AgendaCalendar({
             </Select>
           </div>
           <div className="ml-auto flex gap-2">
+            <Button asChild variant="outline" size="sm" className="h-9">
+              <Link href="/tournees">
+                <Route /> Mes tournées
+              </Link>
+            </Button>
             <Button asChild variant="outline" size="sm" className="h-9">
               <Link href="/agenda/disponibilites">
                 <Settings2 /> Horaires

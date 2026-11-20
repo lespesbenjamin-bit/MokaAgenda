@@ -1,5 +1,35 @@
 # Rapport de tests
 
+## Sprint 5 — Déplacements et tournées (20 novembre 2026)
+
+Branche `sprint-5-deplacements`. Seuls les tests réellement exécutés sont indiqués comme réussis.
+
+**Audit du Sprint 4** : unitaires 129/129, base 136/136, typage OK, aucun blocage.
+
+| Suite | Résultat |
+|---|---|
+| Typage strict / lint | ✅ 0 erreur, 0 avertissement |
+| Unitaires (`npm test`) | ✅ 162 / 162 (33 nouveaux : coûts, frais, zones, enchaînements, rentabilité, optimisation, adaptateur IGN, signatures, limiteur) |
+| Base de données + RLS (`npm run test:db`) | ✅ 161 / 161 (23 Sprint 5 + 3 démo) |
+| HTTP : production / sans configuration / démo | ✅ 41 / 8 / 42 |
+| Visuel (Playwright, 390 px et 1280 px) | ✅ étape adresse, récapitulatif avec frais, paramètres ; 2 défauts corrigés (libellé « Prestation » en double, champ distance trop étroit) |
+
+### Couverture
+- **Signature** : trajet non signé, mal signé, modifié après signature ou périmé → refusé ; clé illisible par anon/authenticated.
+- **Adresses privées** : page publique et tarifs sans point de départ ni coordonnées ; arrêts lisibles seulement avec une preuve serveur de moins de 5 min ; isolement entre entreprises (trajets, véhicules, réglages, zones) ; le personnel ne peut pas modifier les tarifs.
+- **Enchaînements** : trajet non calculé → refus ; trop court depuis le PRÉCÉDENT, vers le SUIVANT, institut ↔ domicile → refus ; marge appliquée (25 min → 35 min) ; changement de dernière minute refusé ; contournement réservé à la professionnelle ; déplacements désactivés = comportement du Sprint 4.
+- **Réservation publique à domicile** : adresse non signée, falsifiée, périmée, d'une autre entreprise, code postal différent → refus ; trajet depuis le départ inconnu → refus (aucun tarif inventé) ; frais calculés en base (inclus, minimum) ; coût du trajet figé (énergie, usure, temps) ; créneau incompatible avec le trajet → refus ; zones (exclusion, jour, minimum, supplément, hors zone) ; « offert au-delà ».
+- **Tournées** : échange de deux rendez-vous en une transaction avec revérification ; proposition périmée → refus ; trajet impossible → tout est annulé.
+- **Fournisseur** (sans réseau, réponses au format réel relevé sur data.geopf.fr) : lecture géocodage/itinéraire, unités, indisponibilité (nouvel essai), quota (429), réseau coupé, adresse ambiguë ou introuvable.
+- **Contrôle des tests** : en neutralisant volontairement la vérification des signatures et le contrôle du rendez-vous suivant dans la base, 4 tests échouent ; une fois restaurés, les 161 passent.
+
+### Non vérifiable ici (à faire en recette)
+- **Appels réels à l'IGN** : l'environnement de développement n'a pas accès à data.geopf.fr. Le format des réponses a été vérifié par deux appels manuels (géocodage et itinéraire) ; le fonctionnement en ligne dépend de la recette.
+- **Carte** : le fond IGN ne se charge pas ici ; la page « Mes tournées » n'a pas été vérifiée visuellement avec des données réelles.
+- **Trafic en temps réel** : non fourni par l'IGN (compensé par la marge).
+- Interface connectée au vrai Supabase (comme aux sprints précédents).
+
+
 ## Sprint 4 — Réservation en ligne (20 novembre 2026)
 
 Branche : `sprint-4-reservation-en-ligne`. Seuls les tests réellement exécutés sont indiqués comme réussis.

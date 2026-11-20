@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT — Moka Réservation
 
 > Fichier de reprise : à fournir en début de toute nouvelle conversation Claude.
-> Dernière mise à jour : 20 novembre 2026 — Sprint 1 validé en production (parcours inscription → onboarding → tableau de bord testé). Sprint 2 : migration exécutée dans Supabase, PR #2 fusionnée et déployée ; recette manuelle en cours. Sprint 3 : PR #3 fusionnée et déployée (20/11). **Sprint 4 (réservation en ligne) : migration exécutée, PR #4 fusionnée et déployée (20/11) ; recette manuelle à faire.** Sprint 5 **non commencé** (attente de validation).
+> Dernière mise à jour : 20 novembre 2026 — Sprint 1 validé en production (parcours inscription → onboarding → tableau de bord testé). Sprint 2 : migration exécutée dans Supabase, PR #2 fusionnée et déployée ; recette manuelle en cours. Sprint 3 : PR #3 fusionnée et déployée (20/11). **Sprint 4 (réservation en ligne) : PR #4 fusionnée et déployée (20/11).** **Sprint 5 (déplacements, frais, tournées) développé et testé sur la branche `sprint-5-deplacements`** — migration `20261123000001` + clé `TRAVEL_SIGNING_SECRET` à installer avant fusion. Sprint 5 **non commencé** (attente de validation).
 
 ## Le produit
 
@@ -44,7 +44,12 @@ Blanc `#FFFFFF`, surface `#FAFAFA`, orange vif `#FF6B2C` (accents), orange fort 
 | **Lien de gestion** `/reservation/<jeton>` (confirmation, annulation, déplacement) | ✅ Sprint 4 |
 | Emails transactionnels (confirmation, alerte pro, annulation, modification) | ✅ développés — **envoi réel seulement après configuration Resend** ; simulés en démo |
 | Paramètres → Réservation en ligne (activation, adresse, présentation, couverture, règles, partage) | ✅ Sprint 4 (le reste des paramètres reste « À venir ») |
-| Stripe (acomptes), tournées et trajets, finances, boutique | non commencés |
+| **Déplacements** : Paramètres → Déplacements (points de départ localisés, véhicule, coûts, marge, 5 modes de frais) et Zones (rayon routier, codes postaux, exclusions, supplément, minimum, jours, carte) | ✅ Sprint 5 — testé (unitaires, PostgreSQL, HTTP, visuel) — **SQL + clé à installer, recette à faire** |
+| **Agenda intelligent** : refus d'un rendez-vous si le trajet depuis le précédent OU vers le suivant ne tient pas (marge comprise), contrôlé par la base | ✅ Sprint 5 |
+| **Mes tournées** (/tournees) : carte, ordre, km, temps de route, coût, frais, temps non productif ; « Optimiser » propose, rien n'est appliqué sans validation | ✅ Sprint 5 |
+| Réservation publique à domicile : adresse vérifiée, zone, frais affichés avant confirmation, seuls les créneaux compatibles avec les trajets | ✅ Sprint 5 |
+| Rentabilité indicative par rendez-vous (marge avant charges fixes, coût du temps, €/h) | ✅ Sprint 5 |
+| Stripe (acomptes), finances complètes, boutique | non commencés |
 
 Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée sur https://moka-agenda.vercel.app.
 
@@ -62,6 +67,7 @@ Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée 
 - [ ] Sprint 3 : recette manuelle §4 « Sprint 3 » (configurer les horaires d'abord)
 - [x] Sprint 4 : migration exécutée, PR #4 fusionnée et déployée (20/11)
 - [ ] Sprint 4 : activer la page dans Paramètres, recette §4 « Sprint 4 »
+- [ ] Sprint 5 : exécuter `supabase/migrations/20261123000001_sprint5_travel.sql`, copier la clé `travel_signing` dans Vercel (`TRAVEL_SIGNING_SECRET`), fusionner, puis Paramètres → Déplacements (voir `docs/SETUP.md` §6)
 - [ ] Emails de réservation : compte Resend + domaine vérifié, puis `RESEND_API_KEY` et `EMAIL_FROM` dans Vercel (voir `docs/SETUP.md` §5)
 - [ ] Modèles d'emails personnalisés (reportés volontairement ; en attendant, ouvrir le lien de confirmation dans le même navigateur)
 - [ ] SMTP personnalisé avant ouverture aux clientes
@@ -86,6 +92,8 @@ Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée 
 - Prestations avec acompte : visibles mais non réservables en ligne jusqu'au Sprint 6 (Stripe).
 - Emails : fournisseur Resend isolé dans `src/server/notifications/mailer.ts` ; démo = toujours simulé ; sans configuration = non envoyé (statut `skipped` journalisé dans `notifications`).
 - Seuls les rendez-vous pris en ligne déclenchent un email à la cliente quand la professionnelle les annule ou les déplace.
+- Déplacements : fournisseur IGN Géoplateforme (gratuit, sans clé, sans trafic temps réel) derrière un adaptateur (`src/server/travel/`). Aucune distance inventée : la base n'accepte que des trajets SIGNÉS par le serveur (HMAC, clé `private.app_secrets` = `TRAVEL_SIGNING_SECRET`). Frais et zones de la réservation publique recalculés en base.
+- Déplacements désactivés par défaut : tant qu'ils le sont, l'agenda se comporte comme au Sprint 4.
 
 ## Règles de travail convenues
 

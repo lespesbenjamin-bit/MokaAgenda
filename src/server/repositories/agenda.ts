@@ -35,6 +35,9 @@ export interface Appointment {
   cancelled_at: string | null;
   source: "manual" | "online";
   customer_comment: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  travel_check: "not_required" | "verified" | "skipped_by_pro";
   created_at: string;
   updated_at: string;
 }
@@ -54,6 +57,8 @@ export interface AppointmentItem {
   consumables_cents: number;
   products_cents: number;
   other_costs_cents: number;
+  price_ht_cents: number;
+  kind: "service" | "travel_fee";
 }
 
 export interface BookingEvent {
@@ -66,9 +71,9 @@ export interface BookingEvent {
 }
 
 const APPOINTMENT_COLUMNS =
-  "id, customer_id, place, status, starts_at, ends_at, duration_minutes, prep_minutes, cleanup_minutes, buffer_minutes, address_id, address_line1, address_line2, postal_code, city, price_total_cents, deposit_amount_cents, balance_due_cents, payment_status, notes_internal, cancel_reason, cancelled_at, source, customer_comment, created_at, updated_at";
+  "id, customer_id, place, status, starts_at, ends_at, duration_minutes, prep_minutes, cleanup_minutes, buffer_minutes, address_id, address_line1, address_line2, postal_code, city, price_total_cents, deposit_amount_cents, balance_due_cents, payment_status, notes_internal, cancel_reason, cancelled_at, source, customer_comment, latitude, longitude, travel_check, created_at, updated_at";
 const ITEM_COLUMNS =
-  "appointment_id, service_id, position, service_name, duration_minutes, catalog_price_cents, unit_price_cents, price_overridden, vat_rate_bps, deposit_type, deposit_amount_cents, consumables_cents, products_cents, other_costs_cents";
+  "appointment_id, service_id, position, service_name, duration_minutes, catalog_price_cents, unit_price_cents, price_overridden, vat_rate_bps, price_ht_cents, deposit_type, deposit_amount_cents, consumables_cents, products_cents, other_costs_cents, kind";
 
 // ─── Horaires et blocages ───────────────────────────────────────────
 

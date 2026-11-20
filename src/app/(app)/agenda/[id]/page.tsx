@@ -13,6 +13,8 @@ import { getAppointment, listCustomerNames, listEvents, listItems } from "@/serv
 import { EVENT_LABELS, STATUS_LABELS, allowedTransitions, isEditable } from "@/lib/domain/appointments";
 import { centsToInput, formatDuration, formatEuros } from "@/lib/domain/pricing";
 import { localDate, localMinute, minuteToHHMM } from "@/lib/domain/time";
+import { profitability } from "@/lib/domain/travel";
+import { getAppointmentTravel } from "@/server/repositories/travel";
 
 export const metadata: Metadata = { title: "Rendez-vous" };
 
@@ -27,12 +29,36 @@ export default async function AppointmentPage({ params, searchParams }: PageProp
   const { ctx, supabase, timeZone } = data;
   const appt = await getAppointment(supabase, ctx.business.id, id);
   if (!appt) notFound();
-  const [items, events, names] = await Promise.all([
+  const [allItems, events, names, trip] = await Promise.all([
     listItems(supabase, ctx.business.id, [id]),
     listEvents(supabase, ctx.business.id, id),
     listCustomerNames(supabase, ctx.business.id, [appt.customer_id]),
+    getAppointmentTravel(supabase, ctx.business.id, id),
   ]);
+  const items = allItems.filter((i) => i.kind !== "travel_fee");
+  const feeItems = allItems.filter((i) => i.kind === "travel_fee");
   const item = items[0];
+  const tripCost =
+    trip && trip.economic_cost_cents != null
+      ? {
+          energyCents: trip.energy_cost_cents ?? 0,
+          wearCents: trip.wear_cost_cents ?? 0,
+          timeCents: trip.time_cost_cents ?? 0,
+          otherCents: trip.other_cost_cents ?? 0,
+          totalCents: trip.economic_cost_cents,
+          cashCents: (trip.energy_cost_cents ?? 0) + (trip.wear_cost_cents ?? 0) + (trip.other_cost_cents ?? 0),
+          allIn: Boolean(trip.vehicle_snapshot?.all_in_cost_per_km_millis),
+        }
+      : null;
+  const profit = profitability({
+    serviceHtCents: items.reduce((s, i) => s + i.price_ht_cents, 0),
+    feeHtCents: feeItems.reduce((s, i) => s + i.price_ht_cents, 0),
+    consumablesCents: items.reduce((s, i) => s + i.consumables_cents, 0),
+    otherDirectCents: items.reduce((s, i) => s + i.products_cents + i.other_costs_cents, 0),
+    travel: tripCost,
+    travelMinutes: trip?.duration_minutes ?? 0,
+    workMinutes: appt.prep_minutes + appt.duration_minutes + appt.cleanup_minutes,
+  });
   const customerName = names.get(appt.customer_id) ?? "Cliente";
   const start = new Date(appt.starts_at);
   const end = new Date(appt.ends_at);
@@ -119,7 +145,13 @@ export default async function AppointmentPage({ params, searchParams }: PageProp
               <Info icon={MapPin} label="Adresse d'intervention">
                 {appt.address_line1}
                 {appt.address_line2 ? `, ${appt.address_line2}` : ""} — {appt.postal_code} {appt.city}
-                <span className="mt-1 block text-xs text-muted-foreground">Trajet : non calculé (prochaine version)</span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  {trip?.distance_meters != null
+                    ? `Trajet de référence (depuis votre point de départ) : ${(trip.distance_meters / 1000).toFixed(1).replace(".", ",")} km, ${trip.duration_minutes} min${trip.zone_name ? ` · zone ${trip.zone_name}` : ""}`
+                    : appt.travel_check === "skipped_by_pro"
+                      ? "Trajet non vérifié (enregistré sans contrôle)"
+                      : "Trajet non calculé"}
+                </span>
               </Info>
             )}
             <Info icon={CalendarClock} label="Temps réservé">
@@ -202,6 +234,44 @@ export default async function AppointmentPage({ params, searchParams }: PageProp
               </>
             )}
           </dl>
+          {feeItems.length > 0 && <p className="text-xs text-muted-foreground">Dont frais de déplacement : {formatEuros(feeItems.reduce((s, i) => s + i.unit_price_cents, 0))}.</p>}
+          <div className="border-t border-border pt-4">
+            <h3 className="font-bold">Rentabilité indicative</h3>
+            <dl className="mt-2 grid grid-cols-[1fr_auto] gap-y-1.5">
+              <dt className="text-muted-foreground">Prestation (HT)</dt>
+              <dd className="text-right">{formatEuros(profit.revenueHtCents - feeItems.reduce((s, i) => s + i.price_ht_cents, 0))}</dd>
+              <dt className="text-muted-foreground">Frais de déplacement facturés (HT)</dt>
+              <dd className="text-right">{formatEuros(feeItems.reduce((s, i) => s + i.price_ht_cents, 0))}</dd>
+              <dt className="text-muted-foreground">Consommables</dt>
+              <dd className="text-right">− {formatEuros(items.reduce((s, i) => s + i.consumables_cents, 0))}</dd>
+              <dt className="text-muted-foreground">Produits et autres coûts</dt>
+              <dd className="text-right">− {formatEuros(items.reduce((s, i) => s + i.products_cents + i.other_costs_cents, 0))}</dd>
+              {tripCost && (
+                <>
+                  <dt className="text-muted-foreground">{tripCost.allIn ? "Trajet (coût kilométrique global)" : "Énergie du trajet"}</dt>
+                  <dd className="text-right">− {formatEuros(tripCost.allIn ? tripCost.wearCents : tripCost.energyCents)}</dd>
+                  {!tripCost.allIn && (<><dt className="text-muted-foreground">Usure du véhicule</dt><dd className="text-right">− {formatEuros(tripCost.wearCents)}</dd></>)}
+                  <dt className="text-muted-foreground">Autres frais variables</dt>
+                  <dd className="text-right">− {formatEuros(tripCost.otherCents)}</dd>
+                </>
+              )}
+              <dt className="font-semibold">Marge financière estimée</dt>
+              <dd className="text-right font-semibold">{formatEuros(profit.financialMarginCents)}</dd>
+              {tripCost && (
+                <>
+                  <dt className="text-muted-foreground">Coût du temps de trajet (valorisé)</dt>
+                  <dd className="text-right">{formatEuros(profit.timeCostCents)}</dd>
+                  <dt className="text-muted-foreground">Marge après temps de trajet</dt>
+                  <dd className="text-right">{formatEuros(profit.economicMarginCents)}</dd>
+                </>
+              )}
+              <dt className="text-muted-foreground">Temps mobilisé</dt>
+              <dd className="text-right">{formatDuration(profit.totalMinutes)}{trip?.duration_minutes ? ` (dont ${trip.duration_minutes} min de route)` : ""}</dd>
+              <dt className="text-muted-foreground">Rentabilité horaire indicative</dt>
+              <dd className="text-right">{profit.hourlyCents != null ? `${formatEuros(profit.hourlyCents)}/h` : "—"}</dd>
+            </dl>
+            <p className="mt-2 text-xs text-muted-foreground">Avant charges fixes et cotisations (Sprint 6). Le temps de trajet est valorisé à part, il n&apos;est pas déduit deux fois. {appt.place === "home" && !tripCost ? "Trajet non calculé : coût de déplacement non inclus." : ""}</p>
+          </div>
           {item?.price_overridden && <p className="text-xs text-muted-foreground">Prix ajusté pour ce rendez-vous (catalogue : {formatEuros(item.catalog_price_cents)}).</p>}
           {archivedService && <p className="text-xs text-muted-foreground">Cette prestation a depuis été archivée ou désactivée dans votre catalogue.</p>}
           <p className="text-xs text-muted-foreground">Prix et durée sont figés à la réservation : un changement de tarif ultérieur ne modifie pas ce rendez-vous. Le paiement en ligne arrivera dans un prochain sprint.</p>

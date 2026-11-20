@@ -28,6 +28,7 @@ export function SlotPicker({
   token,
   refreshKey = 0,
   staticDays,
+  geo,
 }: {
   slug: string;
   serviceId: string;
@@ -43,6 +44,8 @@ export function SlotPicker({
   refreshKey?: number;
   /** Aperçu local uniquement : créneaux fixes, sans appel serveur. */
   staticDays?: DaySlots[];
+  /** Adresse vérifiée (jeton signé par le serveur) pour une prestation à domicile. */
+  geo?: unknown;
 }) {
   const [fromDay, setFromDay] = useState(today);
   const [days, setDays] = useState<DaySlots[] | null>(null);
@@ -58,7 +61,7 @@ export function SlotPicker({
           setDay(staticDays.find((d) => d.slots.length)?.day ?? null);
           return;
         }
-        const res = await publicSlotsAction({ slug, serviceId, place, fromDay: from, days: PAGE_DAYS, token });
+        const res = await publicSlotsAction({ slug, serviceId, place, fromDay: from, days: PAGE_DAYS, token, geo });
         if (!res.ok) {
           setError(res.message);
           setDays([]);
@@ -72,7 +75,7 @@ export function SlotPicker({
         });
       });
     },
-    [slug, serviceId, place, token, staticDays],
+    [slug, serviceId, place, token, staticDays, geo],
   );
 
   useEffect(() => {
@@ -89,16 +92,17 @@ export function SlotPicker({
   const current = visible.find((d) => d.day === day);
   const hasAny = visible.some((d) => d.slots.length > 0);
   const canPrev = fromDay > today;
-  const canNext = addDays(fromDay, PAGE_DAYS) <= lastDay;
+  const pageSize = days?.length || PAGE_DAYS;
+  const canNext = addDays(fromDay, pageSize) <= lastDay;
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <Button type="button" variant="ghost" size="icon" aria-label="Jours précédents" disabled={!canPrev || pending} onClick={() => setFromDay(addDays(fromDay, -PAGE_DAYS) < today ? today : addDays(fromDay, -PAGE_DAYS))}>
+        <Button type="button" variant="ghost" size="icon" aria-label="Jours précédents" disabled={!canPrev || pending} onClick={() => setFromDay(addDays(fromDay, -pageSize) < today ? today : addDays(fromDay, -pageSize))}>
           <ChevronLeft />
         </Button>
         <p className="text-sm font-semibold capitalize">{monthFmt.format(asDate(fromDay))}</p>
-        <Button type="button" variant="ghost" size="icon" aria-label="Jours suivants" disabled={!canNext || pending} onClick={() => setFromDay(addDays(fromDay, PAGE_DAYS))}>
+        <Button type="button" variant="ghost" size="icon" aria-label="Jours suivants" disabled={!canNext || pending} onClick={() => setFromDay(addDays(fromDay, pageSize))}>
           <ChevronRight />
         </Button>
       </div>

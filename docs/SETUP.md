@@ -100,6 +100,16 @@ Les Sprints 2 et 3 n'ajoutent **aucune** variable en production. Le Sprint 4 ajo
 - [ ] Annuler un rendez-vous avec un motif → historique mis à jour, créneau libéré
 - [ ] Changer le prix d'une prestation au catalogue → le rendez-vous existant garde l'ancien prix
 
+### Sprint 5 — déplacements
+- [ ] Paramètres → Déplacements : « Localiser » le départ des tournées (et l'institut) → adresse reconnue affichée
+- [ ] Renseigner le véhicule (remplacer les estimations), cocher « Prendre en compte les trajets », mode « au km », enregistrer
+- [ ] Zones : ajouter « Ville » (rayon 15 km) et une zone exclue (un code postal) ; la carte affiche le point de départ et le cercle
+- [ ] Agenda : créer un RDV à domicile 9 h–10 h (adresse réelle d'une amie, avec accord), puis un autre à 10 h 05 à 15 km → refus « trajet trop court » ; à 10 h 45 → accepté
+- [ ] Le détail du RDV affiche le trajet de référence, les frais et la rentabilité
+- [ ] Page publique en navigation privée : prestation à domicile → adresse → frais et total affichés → seuls des créneaux compatibles ; adresse dans la zone exclue → refus clair
+- [ ] Mes tournées : carte, ordre, km et coût ; « Optimiser ma tournée » → proposition, rien ne change tant qu'on n'a pas validé
+- [ ] Désactiver les déplacements → l'agenda accepte de nouveau deux RDV rapprochés (comportement d'avant)
+
 ### Sprint 4 — réservation en ligne
 - [ ] Paramètres → Réservation en ligne : cocher « Activer », renseigner présentation, téléphone, politique d'annulation ; Enregistrer
 - [ ] Cliquer « Voir ma page » : logo, présentation, prestations et prix corrects ; prestations avec acompte affichées mais non réservables
@@ -126,3 +136,20 @@ Les Sprints 2 et 3 n'ajoutent **aucune** variable en production. Le Sprint 4 ajo
 6. Paramètres → la carte « Emails automatiques » doit indiquer « Actifs ».
 
 ⚠️ Ne jamais définir ces variables sur le projet **démo** : la démo simule les emails quoi qu'il arrive.
+
+## 6. Déplacements : clé de signature (Sprint 5, obligatoire pour activer les trajets)
+
+La base n'accepte que des trajets signés par le serveur. La clé est créée **dans Supabase** par la migration :
+
+1. Supabase → SQL Editor → New query → exécuter :
+   ```sql
+   select value from private.app_secrets where name = 'travel_signing';
+   ```
+   Copier la valeur (64 caractères). Ne la collez nulle part ailleurs que dans Vercel.
+2. Vercel → projet `moka-agenda` → Settings → Environment Variables → `TRAVEL_SIGNING_SECRET` = la valeur (Production et Preview).
+3. Redéployer (Deployments → ⋯ → Redeploy).
+4. Paramètres → Déplacements : l'encadré « Configuration » doit indiquer « Clé de signature des trajets installée ».
+
+Projet démo : même procédure avec la base démo (sa clé est différente).
+
+Fournisseur : IGN Géoplateforme, gratuit et sans clé. Limites publiques : géocodage 50 requêtes/s, itinéraire 5 requêtes/s par adresse IP. Aucun compte à créer.

@@ -51,9 +51,22 @@
 - [x] Démo : page publique fictive, rendez-vous « pris en ligne », confirmation simulée signalée
 - [ ] Exécuter la migration, configurer Resend, recette manuelle
 
-## Sprint 5 — Tournées et trajets (non commencé, attend validation)
+## Sprint 5 — Déplacements et tournées (développé, en attente de SQL + clé + recette)
 
-## Sprint 6 — Paiements Stripe
+- [x] Fournisseur : IGN Géoplateforme (géocodage BAN, itinéraires BD TOPO) via adaptateur remplaçable
+- [x] Paramètres → Déplacements : points de départ/retour localisés, véhicule (6 types), coûts, marge de sécurité
+- [x] Coût réel estimé (énergie, usure, temps, autres) sans double compte ; 5 modes de frais facturés
+- [x] Zones : rayon routier, codes postaux, exclusions, supplément, minimum, jours ; carte
+- [x] Agenda : trajets vérifiés avec le rendez-vous précédent ET suivant (base de données)
+- [x] Mes tournées : carte, indicateurs, optimisation proposée puis appliquée sur validation (tout ou rien)
+- [x] Réservation publique à domicile : adresse vérifiée, zone, frais, créneaux compatibles
+- [x] Rentabilité indicative par rendez-vous ; instantanés des coûts et frais
+- [x] Démo : 3 professionnelles (hybride, domicile, institut), véhicules et politiques de frais
+- [ ] Exécuter la migration, installer la clé, recette manuelle
+- Plus tard : trafic en temps réel (adaptateur Google Routes), recalcul du trajet réel depuis le rendez-vous précédent dans l'instantané, optimisation > 7 arrêts
+
+## Sprint 6 — Paiements Stripe et finances (non commencé, attend validation)
+
 
 - Acomptes en ligne : `booking_holds` pendant le paiement, statut « en attente » puis « confirmé » (tables et états prêts)
 

@@ -167,3 +167,66 @@ describe("réservation en ligne de démonstration", () => {
     expect(visible.rows[0]).toEqual({ source: "online", status: "confirmed" });
   });
 });
+
+/** Insère une ligne avec uniquement les colonnes fournies (les valeurs par défaut de la base s'appliquent). */
+async function insertRow(table: string, row: Record<string, unknown>) {
+  const cols = Object.keys(row);
+  await db.query(`insert into public.${table} (${cols.join(", ")}) values (${cols.map((_, i) => `$${i + 1}`).join(", ")})`, cols.map((c) => (Array.isArray(row[c]) ? row[c] : row[c])));
+}
+
+describe("déplacements fictifs (Sprint 5)", () => {
+  it("véhicule et zones du studio démo respectent les contraintes de la base", async () => {
+    const { demoFixtures: f } = await import("@/server/demo/fixtures");
+    const { buildTravelRows } = await import("@/server/demo/seed");
+    const rows = buildTravelRows(f.travel, biz);
+    await as(
+      db,
+      owner,
+      async () => {
+        for (const v of rows.vehicles) await insertRow("vehicles", v);
+        for (const a of rows.service_areas) await insertRow("service_areas", a);
+        await db.query("update public.travel_settings set (start_point, return_point, safety_margin_pct, safety_margin_minutes, pricing_mode, per_km_cents, included_km, min_fee_cents, max_fee_cents) = ($2, $3, $4, $5, $6, $7, $8, $9, $10) where business_id = $1", [
+          biz, f.travel.settings.start_point, f.travel.settings.return_point, f.travel.settings.safety_margin_pct, f.travel.settings.safety_margin_minutes,
+          f.travel.settings.pricing_mode, f.travel.settings.per_km_cents, f.travel.settings.included_km, f.travel.settings.min_fee_cents, f.travel.settings.max_fee_cents,
+        ]);
+      },
+      { commit: true },
+    );
+    const info = (await as(db, null, () => db.query("select public.public_travel_info($1) as i", [f.business.slug]))).rows[0].i;
+    expect(info.pricing_mode).toBe("per_km");
+    expect(info.areas.map((a: { name: string }) => a.name)).toContain("Nord toulousain");
+  });
+
+  it("les deux professionnelles supplémentaires (domicile seul, institut seul) ont une page publique valide", async () => {
+    const { demoFixtures: f } = await import("@/server/demo/fixtures");
+    const { buildExtraBusinessRows } = await import("@/server/demo/seed");
+    for (const extra of f.extra_businesses) {
+      const extraOwner = await createUser(db, `${extra.business.slug}@exemple.demo`);
+      const id = await as(db, extraOwner, async () => (await db.query("select public.create_business($1) as id", [extra.business.name])).rows[0].id, { commit: true });
+      await as(
+        db,
+        extraOwner,
+        async () => {
+          await db.query("update public.businesses set slug = $2, activity_mode = $3 where id = $1", [id, extra.business.slug, extra.business.activity_mode]);
+          await db.query("update public.business_settings set booking_enabled = true, booking_window_days = $2, slot_step_minutes = $3 where business_id = $1", [id, extra.settings.booking_window_days, extra.settings.slot_step_minutes]);
+          const rows = buildExtraBusinessRows(extra, id);
+          for (const s of rows.services) await insertRow("services", s);
+          for (const l of rows.service_locations) await db.query("insert into public.service_locations (business_id, service_id, place, price_cents) values ($1, $2, $3, $4)", [l.business_id, l.service_id, l.place, l.price_cents]);
+          for (const r of rows.availability_rules) await db.query("insert into public.availability_rules (business_id, weekday, start_minute, end_minute, place) values ($1, $2, $3, $4, $5)", [r.business_id, r.weekday, r.start_minute, r.end_minute, r.place]);
+        },
+        { commit: true },
+      );
+      const page = (await as(db, null, () => db.query("select public.public_booking_page($1) as p", [extra.business.slug]))).rows[0].p;
+      expect(page.has_hours).toBe(true);
+      expect(page.services.length).toBe(extra.services.length);
+      expect(new Set(page.services.flatMap((s: { places: { place: string }[] }) => s.places.map((p) => p.place)))).toEqual(new Set(extra.places));
+    }
+  });
+
+  it("adresses de démonstration : seul le nom de rue est envoyé au service d'adresses", async () => {
+    const { streetOnly } = await import("@/server/demo/travel");
+    expect(streetOnly("12 rue des Fleurs (adresse fictive)")).toBe("rue des Fleurs");
+    expect(streetOnly("5 bis chemin des Vignes")).toBe("chemin des Vignes");
+    expect(streetOnly("Place du Capitole (lieu public, adresse fictive pour la démo)")).toBe("Place du Capitole");
+  });
+});

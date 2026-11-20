@@ -59,6 +59,34 @@ export interface PublicPage {
   has_hours: boolean;
   categories: { id: string; name: string; description: string | null }[];
   services: PublicService[];
+  /** Déplacements (Sprint 5) : tarifs publics uniquement, jamais d'adresse privée. */
+  travel?: PublicTravelInfo | null;
+}
+
+export interface PublicTravelInfo {
+  enabled: boolean;
+  pricing_mode: "free" | "fixed" | "per_km" | "zone" | "free_above";
+  fixed_fee_cents: number;
+  per_km_cents: number;
+  included_km: number;
+  min_fee_cents: number;
+  max_fee_cents: number | null;
+  free_above_cents: number | null;
+  safety_margin_pct: number;
+  safety_margin_minutes: number;
+  version: number;
+  areas: {
+    id: string;
+    name: string;
+    kind: "radius" | "postcodes";
+    max_km: number | null;
+    postcodes: string[] | null;
+    excluded: boolean;
+    surcharge_cents: number;
+    min_order_cents: number;
+    weekdays: number[] | null;
+  }[];
+  service_radius_km: number | null;
 }
 
 export interface PublicAvailabilityRaw {
@@ -175,6 +203,13 @@ export const PUBLIC_ERROR_MESSAGES: Record<string, string> = {
   MOKA_APPOINTMENT_CLOSED: "Ce rendez-vous est déjà annulé ou terminé.",
   MOKA_NOT_FOUND: "Ce lien de réservation n'est pas valide.",
   MOKA_DUPLICATE: "Cette réservation a déjà été enregistrée.",
+  MOKA_ADDRESS_NOT_VERIFIED: "Votre adresse doit être vérifiée avant la réservation. Merci de la saisir à nouveau.",
+  MOKA_ADDRESS_MISMATCH: "Le code postal ne correspond pas à l'adresse vérifiée. Merci de vérifier votre adresse.",
+  MOKA_TRAVEL_UNKNOWN: "Le temps de trajet n'a pas pu être vérifié pour ce créneau. Choisissez un autre créneau ou contactez directement la professionnelle.",
+  MOKA_TRAVEL_TOO_SHORT: "Ce créneau n'est plus compatible avec les trajets de la professionnelle. Merci d'en choisir un autre.",
+  MOKA_OUT_OF_AREA: "Cette adresse est en dehors de la zone d'intervention à domicile.",
+  MOKA_AREA_WRONG_DAY: "Votre secteur n'est desservi que certains jours : choisissez un autre jour.",
+  MOKA_AREA_MINIMUM: "Un montant minimum de prestation est demandé pour votre secteur.",
 };
 
 export const PUBLIC_GENERIC_ERROR = "Une erreur est survenue. Merci de réessayer dans un instant.";
@@ -188,5 +223,13 @@ export function translatePublicError(message: string | undefined | null): { code
 
 /** Erreurs pour lesquelles il faut proposer d'autres créneaux. */
 export function isSlotError(code: string | null): boolean {
-  return code === "MOKA_SLOT_TAKEN" || code === "MOKA_OUTSIDE_HOURS" || code === "MOKA_BLOCKED_PERIOD" || code === "MOKA_TOO_LATE";
+  return (
+    code === "MOKA_SLOT_TAKEN" ||
+    code === "MOKA_OUTSIDE_HOURS" ||
+    code === "MOKA_BLOCKED_PERIOD" ||
+    code === "MOKA_TOO_LATE" ||
+    code === "MOKA_TRAVEL_TOO_SHORT" ||
+    code === "MOKA_TRAVEL_UNKNOWN" ||
+    code === "MOKA_AREA_WRONG_DAY"
+  );
 }

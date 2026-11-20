@@ -80,6 +80,26 @@ Navigateur (cliente, sans compte)
 - **Actions de la professionnelle** : annuler ou déplacer un rendez-vous **pris en ligne** prévient la cliente (`server/services/pro-notifications.ts`, via la RLS).
 - **Agenda** : actualisation automatique toutes les 60 s et au retour sur l'onglet.
 
+## Déplacements (Sprint 5)
+
+```
+Fournisseur (IGN Géoplateforme)  ←  src/server/travel/ign.ts (adaptateur TravelProvider)
+        ↑ limiteur 4 req/s, cache mémoire, 1 nouvel essai sur 429/5xx
+src/server/travel/service.ts : géocodage validé (ok / ambigu / introuvable / indisponible),
+        trajets, SIGNATURE HMAC (signing.ts) → public.record_travel_estimate (base)
+        ↓
+PostgreSQL : travel_estimates (seuls les trajets signés), déclencheur appointments_35_travel
+        (précédent ET suivant, marge), frais et zones recalculés dans public_create_booking
+```
+
+- **Aucune valeur inventée** : un trajet inconnu bloque la réservation publique (MOKA_TRAVEL_UNKNOWN) ; la professionnelle peut enregistrer « sans vérifier le trajet » (statut `skipped_by_pro`, réservé aux membres).
+- **Clé de signature** : générée dans la base (`private.app_secrets`, inaccessible aux rôles anon/authenticated), copiée dans Vercel (`TRAVEL_SIGNING_SECRET`). Trois messages signés : trajet, adresse vérifiée (jeton valable 2 h, lié à l'entreprise) et lecture serveur des arrêts privés (preuve valable 5 min).
+- **Règles métier pures** (`lib/domain/travel.ts`) identiques aux fonctions SQL : coût (énergie, usure ou coût global, temps, autres ; arrondi au centime par poste), frais (5 modes, inclus, minimum, maximum, supplément), zones, marge, voisins, rentabilité, optimisation (recherche exhaustive ≤ 7 arrêts).
+- **Réservation publique** (`services/public-travel.ts`) : adresse → zone → frais → créneaux filtrés par `checkTravel` ; avant confirmation, les trajets du créneau sont recalculés et enregistrés ; la base revérifie tout.
+- **Agenda pro** (`services/pro-travel.ts`) : adresse cliente localisée et mémorisée, pré-contrôle des trajets, ligne « Frais de déplacement » (type `travel_fee`), instantané `appointment_travel` (coûts, version des réglages, véhicule).
+- **Tournées** (`services/tours.ts`) : trajets depuis le cache puis le fournisseur ; proposition enregistrée (`route_plans`), appliquée par `apply_route_plan` (tout ou rien, contrainte anti-chevauchement différée, trajets revérifiés).
+- **Carte** : Leaflet + fond « Plan IGN » (WMTS Géoplateforme), chargé côté navigateur uniquement.
+
 ## Choix techniques
 
 - Next.js 16 **sans Cache Components** (application authentifiée, rendu dynamique plus simple et sans risque de cache croisé entre entreprises).

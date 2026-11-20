@@ -53,16 +53,12 @@ export const navigation: NavItem[] = [
   },
   {
     key: "tours",
-    label: "Tournées",
+    label: "Mes tournées",
     href: "/tournees",
     icon: Route,
-    status: "coming_soon",
-    summary: "Organisez vos déplacements entre clientes.",
-    planned: [
-      "Ordre de passage optimisé",
-      "Temps de trajet pris en compte dans les disponibilités",
-      "Zone d'intervention",
-    ],
+    status: "available",
+    summary: "Vos déplacements du jour sur une carte, leur coût et l'ordre de passage optimisé.",
+    planned: [],
     mobilePrimary: false,
   },
   {

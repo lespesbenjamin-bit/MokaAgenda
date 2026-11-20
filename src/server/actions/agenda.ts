@@ -6,6 +6,8 @@ import { requireBusinessContext } from "@/server/services/business-context";
 import { createSupabaseServerClient } from "@/server/integrations/supabase/server";
 import { buildItemSnapshot, precheckSlot } from "@/server/services/agenda";
 import { notifyCustomerOfProChange } from "@/server/services/pro-notifications";
+import { checkProTravel, loadProTravel, quoteHomeFee, resolveHomeCoords, saveTravelSnapshot, travelFeeItem } from "@/server/services/pro-travel";
+import type { LatLng } from "@/lib/domain/travel";
 import {
   createAppointmentRpc,
   deleteException,
@@ -38,7 +40,11 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface AppointmentFormState extends FormState {
   suggestions?: string[];
+  /** Le trajet n'a pas pu être vérifié : la professionnelle peut enregistrer quand même. */
+  travelSkippable?: boolean;
 }
+
+const SKIP_HINT = " Vous pouvez cocher « Enregistrer sans vérifier le trajet ».";
 
 function formObject(formData: FormData): Record<string, string> {
   const out: Record<string, string> = {};
@@ -80,6 +86,7 @@ async function saveAppointment(formData: FormData, id: string | null): Promise<A
   let previousStart: string | null = null;
 
   let newId: string | null = null;
+  let feeQuote: Awaited<ReturnType<typeof quoteHomeFee>> = null;
   try {
     const service = await getService(supabase, businessId, p.serviceId);
     if (!service || service.archived_at) return withValues({ fieldErrors: { service_id: "Prestation introuvable ou archivée." } }, formData);
@@ -89,6 +96,35 @@ async function saveAppointment(formData: FormData, id: string | null): Promise<A
     const startsAt = zonedToUtc(p.date, p.minute, timeZone);
     const check = await precheckSlot(supabase, businessId, timeZone, { startsAt, place: p.place, ...snapshot.timing }, id ?? undefined);
     if (!check.ok) return { ...withValues({ error: check.message }, formData), suggestions: check.suggestions };
+
+    // Déplacements (Sprint 5) : adresse localisée, trajets avec les rendez-vous voisins, frais
+    const travel = await loadProTravel(supabase, businessId);
+    const skip = form.skip_travel_check === "on";
+    let coords: LatLng | null = null;
+    const items: Record<string, unknown>[] = [snapshot.item];
+    if (travel) {
+      if (p.place === "home" && p.address) {
+        const r = await resolveHomeCoords(supabase, businessId, { addressId: p.address.addressId, line1: p.address.line1, postalCode: p.address.postalCode, city: p.address.city });
+        if (r.ok) coords = r.coords;
+        else if (!skip) return { ...withValues({ error: r.message + SKIP_HINT }, formData), travelSkippable: true };
+      } else if (p.place === "salon") {
+        coords = travel.salon;
+      }
+      if (coords && !skip) {
+        const blockedStart = new Date(startsAt.getTime() - snapshot.timing.prepMinutes * 60_000);
+        const blockedEnd = new Date(startsAt.getTime() + (snapshot.timing.durationMinutes + snapshot.timing.cleanupMinutes + snapshot.timing.bufferMinutes) * 60_000);
+        const t = await checkProTravel(supabase, businessId, travel, { coords, start: blockedStart, end: blockedEnd, excludeId: id ?? undefined });
+        if (!t.ok) return { ...withValues({ error: t.message + (t.unavailable ? SKIP_HINT : "") }, formData), travelSkippable: t.unavailable };
+      }
+      if (p.place === "home" && coords) {
+        try {
+          feeQuote = await quoteHomeFee(supabase, businessId, travel, { coords, postcode: p.address?.postalCode ?? null, serviceCents: snapshot.item.unit_price_cents, startsAt, timeZone, serviceRadiusKm: c.ctx.settings?.service_radius_km ?? null });
+        } catch {
+          feeQuote = null;
+        }
+        if (feeQuote && feeQuote.fee.feeCents > 0) items.push(travelFeeItem(feeQuote.fee.feeCents, travel.settings.fee_vat_rate_bps));
+      }
+    }
 
     const fields = {
       place: p.place,
@@ -103,7 +139,10 @@ async function saveAppointment(formData: FormData, id: string | null): Promise<A
       postal_code: p.address?.postalCode ?? "",
       city: p.address?.city ?? "",
       notes_internal: p.notes ?? "",
-      items: [snapshot.item],
+      items,
+      latitude: coords?.lat ?? "",
+      longitude: coords?.lng ?? "",
+      skip_travel_check: Boolean(travel) && (skip || !coords),
     };
 
     if (id) {
@@ -129,6 +168,18 @@ async function saveAppointment(formData: FormData, id: string | null): Promise<A
   } catch (error) {
     console.error("[agenda] enregistrement", error);
     return withValues({ error: translateAppointmentError(error instanceof Error ? error.message : undefined) }, formData);
+  }
+  const savedId = id ?? newId;
+  if (savedId && feeQuote && c.ctx.role) {
+    const travel = await loadProTravel(supabase, businessId);
+    if (travel) {
+      await saveTravelSnapshot(supabase, c.ctx, travel, savedId, {
+        distanceM: feeQuote.leg.distanceM,
+        durationS: feeQuote.leg.durationS,
+        feeCents: feeQuote.fee.feeCents,
+        zoneName: feeQuote.area.ok ? feeQuote.area.zoneName : null,
+      }).catch((e) => console.error("[déplacements] instantané", e));
+    }
   }
   if (id) await notifyIfMoved(c, id, previousStart);
   refresh(id ?? newId ?? undefined);
@@ -174,6 +225,14 @@ export async function rescheduleAction(id: string, startIso: string, durationMin
       id,
     );
     if (!check.ok) return { ok: false, error: check.message };
+    const travel = await loadProTravel(supabase, businessId);
+    const coords = !travel ? null : appt.place === "salon" ? travel.salon : appt.latitude != null && appt.longitude != null ? { lat: Number(appt.latitude), lng: Number(appt.longitude) } : null;
+    if (travel && coords && appt.travel_check !== "skipped_by_pro") {
+      const blockedStart = new Date(startsAt.getTime() - appt.prep_minutes * 60_000);
+      const blockedEnd = new Date(startsAt.getTime() + ((durationMinutes ?? appt.duration_minutes) + appt.cleanup_minutes + appt.buffer_minutes) * 60_000);
+      const t = await checkProTravel(supabase, businessId, travel, { coords, start: blockedStart, end: blockedEnd, excludeId: id });
+      if (!t.ok) return { ok: false, error: t.message };
+    }
     await updateAppointmentRpc(supabase, id, { starts_at: startsAt.toISOString(), ...(durationMinutes ? { duration_minutes: durationMinutes } : {}) });
   } catch (error) {
     console.error("[agenda] déplacement", error);

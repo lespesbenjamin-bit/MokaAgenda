@@ -2,7 +2,8 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/server/integrations/supabase/admin";
 import { checkDemoTarget } from "./guard";
 import { demoFixtures } from "./fixtures";
-import { DEMO_TABLE_ORDER, buildDemoRows, rowsByTable } from "./seed";
+import { DEMO_TABLE_ORDER, buildDemoRows, buildExtraBusinessRows, buildTravelRows, rowsByTable } from "./seed";
+import { enableDemoTravel, geocodeDemoBusiness } from "./travel";
 
 /**
  * Réinitialise la base DÉMO : supprime toutes les entreprises et tous les
@@ -76,6 +77,44 @@ export async function resetDemo(): Promise<{ businessId: string }> {
     if (tables[table].length === 0) continue;
     const { error } = await admin.from(table).insert(tables[table]);
     if (error) throw new Error(`Données démo (${table}) : ${error.message}`);
+  }
+
+  // 6. Déplacements (Sprint 5) : véhicule, zones, localisation au niveau de la rue, activation
+  const insertAll = async (table: string, rows: Record<string, unknown>[]) => {
+    if (!rows.length) return;
+    const { error } = await admin.from(table).insert(rows);
+    if (error) throw new Error(`Données démo (${table}) : ${error.message}`);
+  };
+  const mainTravel = buildTravelRows(f.travel, biz.id);
+  await insertAll("vehicles", mainTravel.vehicles);
+  await insertAll("service_areas", mainTravel.service_areas);
+  const geo = await geocodeDemoBusiness(admin, biz.id).catch((e) => {
+    console.error("[démo] localisation", e);
+    return { located: 0, failed: 0, startLocated: false };
+  });
+  await enableDemoTravel(admin, biz.id, f.travel.settings, geo.startLocated);
+
+  // 7. Deux autres professionnelles fictives : 100 % domicile et 100 % institut (pages publiques)
+  for (const extra of f.extra_businesses) {
+    const { data: other, error } = await admin
+      .from("businesses")
+      .insert({ ...extra.business, created_by: userId, onboarding_step: 5, onboarding_completed_at: new Date().toISOString() })
+      .select("id")
+      .single();
+    if (error || !other) throw new Error(`Entreprise démo supplémentaire : ${error?.message}`);
+    await insertAll("business_settings", [{ business_id: other.id, ...extra.settings }]);
+    await insertAll("locations", extra.locations.map((l) => ({ business_id: other.id, ...l })));
+    const rows = buildExtraBusinessRows(extra, other.id);
+    await insertAll("services", rows.services);
+    await insertAll("service_locations", rows.service_locations);
+    await insertAll("availability_rules", rows.availability_rules);
+    if (extra.travel) {
+      const t = buildTravelRows(extra.travel, other.id);
+      await insertAll("vehicles", t.vehicles);
+      await insertAll("service_areas", t.service_areas);
+      const g = await geocodeDemoBusiness(admin, other.id).catch(() => ({ startLocated: false }));
+      await enableDemoTravel(admin, other.id, extra.travel.settings, g.startLocated);
+    }
   }
   return { businessId: biz.id };
 }

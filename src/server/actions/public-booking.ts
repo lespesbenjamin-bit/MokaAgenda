@@ -11,10 +11,15 @@ import {
   cancelPublicBooking,
   createPublicBooking,
   loadBookingByHash,
+  loadBookingCoords,
+  loadPublicPage,
   loadPublicSlots,
   reschedulePublicBooking,
   type DaySlots,
 } from "@/server/services/public-booking";
+import { checkHomeAddress, type AddressCheckResult } from "@/server/services/public-travel";
+import { createSupabasePublicClient } from "@/server/integrations/supabase/public";
+import { requiresDeposit } from "@/lib/domain/public-booking";
 
 /**
  * Actions publiques (sans compte). Chaque action : limitation de débit,
@@ -37,13 +42,32 @@ export async function publicSlotsAction(input: {
   fromDay: string;
   days?: number;
   token?: string;
+  geo?: unknown;
 }): Promise<{ ok: true; days: DaySlots[] } | { ok: false; message: string }> {
   if (!hitRateLimit("slots", await ip())) return { ok: false, message: TOO_MANY };
   if (!isValidSlug(input.slug) || !UUID.test(input.serviceId) || !DAY.test(input.fromDay) || (input.place !== "salon" && input.place !== "home")) {
     return { ok: false, message: "Demande invalide." };
   }
   const excludeTokenHash = input.token ? hashIncomingToken(input.token) : null;
-  return loadPublicSlots({ slug: input.slug, serviceId: input.serviceId, place: input.place, fromDay: input.fromDay, days: input.days ?? 14, excludeTokenHash });
+  const coords = excludeTokenHash ? await loadBookingCoords(excludeTokenHash) : null;
+  return loadPublicSlots({ slug: input.slug, serviceId: input.serviceId, place: input.place, fromDay: input.fromDay, days: input.days ?? 14, excludeTokenHash, geo: input.geo, coords });
+}
+
+/** Vérifie l'adresse d'une prestation à domicile : géocodage, zone, frais de déplacement. */
+export async function checkHomeAddressAction(input: { slug: string; serviceId: string; line1: string; postalCode: string; city: string }): Promise<AddressCheckResult> {
+  if (!hitRateLimit("slots", await ip())) return { ok: false, kind: "unavailable", message: TOO_MANY };
+  const line1 = String(input.line1 ?? "").trim().slice(0, 200);
+  const postalCode = String(input.postalCode ?? "").trim();
+  const city = String(input.city ?? "").trim().slice(0, 100);
+  if (!isValidSlug(input.slug) || !UUID.test(input.serviceId)) return { ok: false, kind: "not_found", message: "Demande invalide." };
+  if (!line1 || !/^\d{5}$/.test(postalCode) || !city) return { ok: false, kind: "not_found", message: "Indiquez la rue, un code postal à 5 chiffres et la ville." };
+  const page = await loadPublicPage(input.slug);
+  const service = page?.services.find((s) => s.id === input.serviceId);
+  const supabase = createSupabasePublicClient();
+  if (!page || !service || !supabase || requiresDeposit(service) || !service.places.some((p) => p.place === "home")) {
+    return { ok: false, kind: "refused", message: "Cette prestation n'est pas réservable à domicile en ligne." };
+  }
+  return checkHomeAddress(supabase, page, service, { line1, postalCode, city });
 }
 
 export interface BookingState {
@@ -80,6 +104,7 @@ export async function createPublicBookingAction(_prev: BookingState, formData: F
     address: f.place === "home" ? { line1: f.address_line1, line2: f.address_line2, postalCode: f.postal_code, city: f.city } : null,
     comment: f.comment,
     idempotencyKey: f.idempotency_key,
+    geo: parseGeo(raw.geo),
   });
 
   if (!result.ok) return { error: result.message, slotUnavailable: isSlotError(result.code) };
@@ -113,4 +138,13 @@ export async function reschedulePublicBookingAction(token: string, _prev: Manage
   const result = await reschedulePublicBooking(token, new Date(startsAt).toISOString());
   if (!result.ok) return { error: result.message, slotUnavailable: isSlotError(result.code) };
   redirect(`/reservation/${token}?deplacee=1`);
+}
+
+function parseGeo(raw: string | undefined): unknown {
+  if (!raw) return undefined;
+  try {
+    return JSON.parse(raw.slice(0, 2000));
+  } catch {
+    return undefined;
+  }
 }

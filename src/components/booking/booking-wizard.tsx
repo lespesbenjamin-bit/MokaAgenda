@@ -8,7 +8,9 @@ import { FormAlert } from "@/components/ui/form-alert";
 import { Checkbox, Input, Label, Textarea } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { SlotPicker } from "./slot-picker";
-import { createPublicBookingAction, type BookingState } from "@/server/actions/public-booking";
+import { checkHomeAddressAction, createPublicBookingAction, type BookingState } from "@/server/actions/public-booking";
+import type { AddressCheck } from "@/server/services/public-travel";
+import { AddressStep } from "./address-step";
 import type { DaySlots } from "@/server/services/public-booking";
 import {
   DEPOSIT_UNAVAILABLE_MESSAGE,
@@ -72,7 +74,7 @@ export function BookingWizard({
   renderedAt: number;
   isDemo: boolean;
   /** Aperçu local uniquement (captures d'écran) : étape et choix pré-remplis, créneaux fixes. */
-  preview?: { step: number; serviceId?: string; place?: Place; startsAt?: string; contact?: Partial<Contact>; days?: DaySlots[] };
+  preview?: { step: number; serviceId?: string; place?: Place; startsAt?: string; contact?: Partial<Contact>; days?: DaySlots[]; addressCheck?: AddressCheck; askAddress?: boolean };
 }) {
   const [state, formAction] = useActionState<BookingState, FormData>(createPublicBookingAction, {});
   const [step, setStep] = useState(preview?.step ?? 0);
@@ -80,6 +82,10 @@ export function BookingWizard({
   const [place, setPlace] = useState<Place | null>(preview?.place ?? null);
   const [startsAt, setStartsAt] = useState<string | null>(preview?.startsAt ?? null);
   const [contact, setContact] = useState<Contact>({ ...EMPTY_CONTACT, ...preview?.contact });
+  // Déplacements (Sprint 5) : adresse vérifiée avant les créneaux, frais affichés avant confirmation
+  const travelOn = Boolean(page.travel?.enabled);
+  const [addressCheck, setAddressCheck] = useState<AddressCheck | null>(preview?.addressCheck ?? null);
+  const [askAddress, setAskAddress] = useState(Boolean(preview?.askAddress));
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
   const [refreshKey, setRefreshKey] = useState(0);
   const topRef = useRef<HTMLDivElement>(null);
@@ -124,9 +130,13 @@ export function BookingWizard({
     if (requiresDeposit(s)) return;
     setServiceId(s.id);
     setStartsAt(null);
+    setAddressCheck(null);
     if (s.places.length === 1) {
       setPlace(s.places[0].place);
-      setStep(2);
+      if (s.places[0].place === "home" && travelOn) {
+        setAskAddress(true);
+        setStep(1);
+      } else setStep(2);
     } else {
       setPlace(null);
       setStep(1);
@@ -251,7 +261,27 @@ export function BookingWizard({
       )}
 
       {/* Étape 2 — Lieu */}
-      {step === 1 && service && (
+      {step === 1 && service && askAddress && place === "home" && (
+        <AddressStep
+          service={service}
+          initial={{ line1: contact.address_line1, postalCode: contact.postal_code, city: contact.city }}
+          check={(a) => checkHomeAddressAction({ slug: page.business.slug, serviceId: service.id, ...a })}
+          contactLine={[page.business.phone, page.business.email].filter(Boolean).join(" · ")}
+          onVerified={(res, a) => {
+            setAddressCheck(res);
+            setContact((c) => ({ ...c, address_line1: a.line1, postal_code: res.postcode, city: res.city ?? a.city }));
+            setStartsAt(null);
+            setAskAddress(false);
+            setStep(2);
+          }}
+          onBack={() => {
+            setAskAddress(false);
+            if (service.places.length === 1) setStep(0);
+          }}
+        />
+      )}
+
+      {step === 1 && service && !(askAddress && place === "home") && (
         <section aria-labelledby="step-place" className="flex flex-col gap-4">
           <h2 id="step-place" className="text-lg font-bold">Où souhaitez-vous votre rendez-vous ?</h2>
           <p className="text-sm text-muted-foreground">{service.name}</p>
@@ -262,6 +292,10 @@ export function BookingWizard({
               onClick={() => {
                 setPlace(p.place);
                 setStartsAt(null);
+                if (p.place === "home" && travelOn) {
+                  setAskAddress(true);
+                  return;
+                }
                 setStep(2);
               }}
               className={cn("flex items-center gap-4 rounded-2xl border bg-card p-4 text-left transition-colors hover:border-primary hover:bg-accent/40", place === p.place ? "border-primary" : "border-border")}
@@ -272,7 +306,7 @@ export function BookingWizard({
               <span className="flex-1">
                 <span className="block font-semibold">{PLACE_LABELS[p.place]}</span>
                 <span className="block text-sm text-muted-foreground">
-                  {p.place === "salon" ? formatAddress(page.salon) || "À l'institut" : "La professionnelle se déplace chez vous"}
+                  {p.place === "salon" ? formatAddress(page.salon) || "À l'institut" : travelOn ? "La professionnelle se déplace chez vous · frais de déplacement calculés selon votre adresse" : "La professionnelle se déplace chez vous"}
                 </span>
               </span>
               <span className="font-semibold">{formatEuros(p.price_cents)}</span>
@@ -289,6 +323,12 @@ export function BookingWizard({
             <p className="text-sm text-muted-foreground">
               {service.name} · {PLACE_LABELS[place]} · {formatDuration(service.duration_minutes)}
             </p>
+            {place === "home" && travelOn && addressCheck && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Créneaux compatibles avec les trajets de la professionnelle jusqu&apos;à {addressCheck.label}.{" "}
+                <button type="button" className="underline underline-offset-2" onClick={() => { setAskAddress(true); setStep(1); }}>Changer d&apos;adresse</button>
+              </p>
+            )}
           </div>
           {state.slotUnavailable && state.error && <FormAlert type="error">{state.error}</FormAlert>}
           <SlotPicker
@@ -301,6 +341,7 @@ export function BookingWizard({
             selected={startsAt}
             refreshKey={refreshKey}
             staticDays={preview?.days}
+            geo={place === "home" && travelOn ? addressCheck?.geo : undefined}
             onSelect={(iso) => {
               setStartsAt(iso);
               setStep(3);
@@ -317,6 +358,7 @@ export function BookingWizard({
         <input type="hidden" name="starts_at" value={startsAt ?? ""} />
         <input type="hidden" name="idempotency_key" value={idempotencyKey} />
         <input type="hidden" name="rendered_at" value={renderedAt} />
+        <input type="hidden" name="geo" value={place === "home" && travelOn && addressCheck ? JSON.stringify(addressCheck.geo) : ""} />
         {/* Piège à robots : invisible et ignoré par les humains */}
         <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
           <label>
@@ -335,7 +377,18 @@ export function BookingWizard({
           </div>
           <TextInput label="Email" name="email" type="email" inputMode="email" value={contact.email} onChange={set("email")} error={errors.email} autoComplete="email" hint="La confirmation vous sera envoyée à cette adresse." />
           <TextInput label="Téléphone" name="phone" type="tel" inputMode="tel" value={contact.phone} onChange={set("phone")} error={errors.phone} autoComplete="tel" />
-          {place === "home" && (
+          {place === "home" && travelOn && addressCheck && (
+            <fieldset className="flex flex-col gap-3 rounded-2xl border border-border p-4">
+              <legend className="px-1 text-sm font-semibold">Adresse du rendez-vous (vérifiée)</legend>
+              <p className="text-sm">{contact.address_line1}, {contact.postal_code} {contact.city}</p>
+              <input type="hidden" name="address_line1" value={contact.address_line1} />
+              <input type="hidden" name="postal_code" value={contact.postal_code} />
+              <input type="hidden" name="city" value={contact.city} />
+              <TextInput label="Complément (étage, code…)" name="address_line2" value={contact.address_line2} onChange={set("address_line2")} error={errors.address_line2} autoComplete="address-line2" />
+              <button type="button" className="self-start text-xs underline underline-offset-2" onClick={() => { setAskAddress(true); setStep(1); }}>Modifier l&apos;adresse</button>
+            </fieldset>
+          )}
+          {place === "home" && !(travelOn && addressCheck) && (
             <fieldset className="flex flex-col gap-4 rounded-2xl border border-border p-4">
               <legend className="px-1 text-sm font-semibold">Adresse du rendez-vous</legend>
               <TextInput label="Adresse" name="address_line1" value={contact.address_line1} onChange={set("address_line1")} error={errors.address_line1} autoComplete="address-line1" />
@@ -387,7 +440,15 @@ export function BookingWizard({
                 label="Lieu"
                 value={place === "home" ? `À domicile — ${formatAddress({ line1: contact.address_line1, line2: contact.address_line2, postal_code: contact.postal_code, city: contact.city })}` : `En institut${page.salon ? ` — ${formatAddress(page.salon)}` : ""}`}
               />
-              <SummaryRow label="Prix" value={price != null ? formatEuros(price) : "—"} strong />
+              {place === "home" && travelOn && addressCheck ? (
+                <>
+                  <SummaryRow label="Prix de la prestation" value={formatEuros(addressCheck.serviceCents)} />
+                  <SummaryRow label="Déplacement" value={addressCheck.feeCents > 0 ? `${formatEuros(addressCheck.feeCents)} (${addressCheck.distanceKm.toString().replace(".", ",")} km${addressCheck.zoneName ? ` · ${addressCheck.zoneName}` : ""})` : "Offert"} />
+                  <SummaryRow label="Total" value={formatEuros(addressCheck.serviceCents + addressCheck.feeCents)} strong />
+                </>
+              ) : (
+                <SummaryRow label="Prix" value={price != null ? formatEuros(price) : "—"} strong />
+              )}
               <SummaryRow label="Acompte" value="Aucun acompte demandé" />
               <SummaryRow label="Annulation" value={page.settings.customer_can_cancel ? (noticeHours > 0 ? `Possible en ligne jusqu'à ${noticeHours} h avant` : "Possible en ligne jusqu'au rendez-vous") : "Contactez la professionnelle"} />
               <SummaryRow label="Vos coordonnées" value={`${contact.first_name} ${contact.last_name} · ${contact.email} · ${contact.phone}`} />
