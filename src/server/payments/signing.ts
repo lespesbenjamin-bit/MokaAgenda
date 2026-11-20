@@ -19,7 +19,8 @@ export type PaymentOp =
   | "payment_fee"
   | "refund_sync"
   | "dispute_sync"
-  | "payout_sync";
+  | "payout_sync"
+  | "reconcile_targets";
 
 export function paymentMessage(op: PaymentOp, ts: number, payload: string): string {
   return ["pay", "v1", op, String(ts), payload].join("|");

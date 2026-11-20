@@ -1235,6 +1235,20 @@ begin
        or public.payouts.last_event_at <= excluded.last_event_at;
     return jsonb_build_object('business_id', v_business);
 
+  when 'reconcile_targets' then
+    -- Comptes à relire chez Stripe et remboursements demandés non encore exécutés.
+    return jsonb_build_object(
+      'accounts', coalesce((select jsonb_agg(jsonb_build_object('stripe_account_id', a.stripe_account_id, 'livemode', a.livemode))
+                            from public.payment_accounts a
+                            where a.charges_enabled
+                              and (p ->> 'stripe_account_id' is null or a.stripe_account_id = p ->> 'stripe_account_id')), '[]'::jsonb),
+      'refunds', coalesce((select jsonb_agg(jsonb_build_object('id', r.id, 'payment_intent_id', pm.stripe_payment_intent_id,
+                                                              'stripe_account_id', pm.stripe_account_id, 'amount_cents', r.amount_cents, 'reason', r.reason))
+                           from public.refunds r join public.payments pm on pm.id = r.payment_id
+                           where r.status = 'requested' and r.stripe_refund_id is null and pm.method = 'card_online'
+                             and r.created_at < now() - interval '2 minutes'
+                             and (p ->> 'stripe_account_id' is null or pm.stripe_account_id = p ->> 'stripe_account_id')), '[]'::jsonb));
+
   else
     raise exception 'MOKA_INVALID_INPUT' using errcode = 'P0001';
   end case;
@@ -1264,3 +1278,23 @@ as $$
 $$;
 revoke all on function public.public_hold_status(uuid, text) from public;
 grant execute on function public.public_hold_status(uuid, text) to anon, authenticated;
+
+-- ─── Informations publiques de paiement (aucune donnée sensible) ────
+create or replace function public.public_payment_info(p_slug text)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select jsonb_build_object(
+    'online', coalesce(a.charges_enabled, false),
+    'deposit_kind', coalesce(f.deposit_kind, 'arrhes'),
+    'deposit_terms', f.deposit_terms)
+  from public.businesses b
+  left join public.payment_accounts a on a.business_id = b.id
+  left join public.financial_settings f on f.business_id = b.id
+  where b.id = private.bookable_business(p_slug);
+$$;
+revoke all on function public.public_payment_info(text) from public;
+grant execute on function public.public_payment_info(text) to anon, authenticated;

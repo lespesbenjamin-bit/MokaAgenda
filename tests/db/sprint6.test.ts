@@ -56,12 +56,12 @@ const book = (p: Json, c: Client = db) => as(c, null, async () => (await c.query
 const pro = <T>(user: string, fn: () => Promise<T>) => as(db, user, fn, { commit: true });
 
 let sessionSeq = 0;
-async function holdWithSession(over: Json = {}) {
+async function holdWithSession(over: Json = {}): Promise<Json & { session: string; hold_id: string }> {
   const r = await book(booking(over));
   expect(r.payment_required).toBe(true);
   const session = `cs_test_${++sessionSeq}_${randomUUID().slice(0, 8)}`;
   expect((await op("checkout_attach", { hold_id: r.hold_id, session_id: session })).ok).toBe(true);
-  return { ...r, session };
+  return { ...r, session } as Json & { session: string; hold_id: string };
 }
 const completed = (session: string, amount: number, extra: Json = {}) =>
   op("checkout_completed", { session_id: session, payment_intent_id: `pi_${session}`, charge_id: `ch_${session}`, amount_cents: amount, currency: "eur", account: ACCT, livemode: false, fee_cents: 70, paid_epoch: epoch(), ...extra });
@@ -314,6 +314,17 @@ describe("réservation avec arrhes", () => {
     // Remboursement fait depuis le tableau de bord Stripe : ajouté au registre.
     expect((await op("refund_sync", { stripe_refund_id: "re_dash_1", payment_intent_id: `pi_${confirmed.session}`, amount_cents: 200, status: "succeeded", event_at: epoch() })).created).toBe(true);
     expect((await one("select coalesce(sum(amount_cents), 0)::int as s from public.refunds where payment_id = $1 and status = 'succeeded'", [pay.id])).s).toBe(1000);
+  });
+
+  it("réconciliation : liste les comptes actifs et les remboursements demandés non exécutés", async () => {
+    const pay = await one<{ id: string }>("select id from public.payments where stripe_checkout_session_id = $1", [confirmed.session]);
+    const r = await pro(ownerA, async () => (await one("select public.request_refund($1, 100, 'customer_request') as r", [pay.id])).r);
+    await db.query("update public.refunds set created_at = now() - interval '5 minutes' where id = $1", [r.refund_id]);
+    const t = await op("reconcile_targets", {});
+    expect(t.accounts).toContainEqual({ stripe_account_id: ACCT, livemode: false });
+    expect(t.refunds.map((x: Json) => x.id)).toContain(r.refund_id);
+    await op("refund_sync", { refund_row_id: r.refund_id, stripe_refund_id: "re_retry_1", payment_intent_id: `pi_${confirmed.session}`, amount_cents: 100, status: "succeeded" });
+    expect((await op("reconcile_targets", {})).refunds.map((x: Json) => x.id)).not.toContain(r.refund_id);
   });
 
   it("contestation et virement bancaire enregistrés", async () => {

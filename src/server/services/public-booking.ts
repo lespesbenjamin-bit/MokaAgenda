@@ -21,13 +21,40 @@ import { renderEmail, type EmailBooking, type NotificationKind } from "@/server/
 import { generateManageToken, hashIncomingToken } from "@/server/security/tokens";
 import { buildTravelFilter, travelEnabled } from "./public-travel";
 import type { LatLng } from "@/lib/domain/travel";
-import type { PublicTravelInfo } from "@/lib/domain/public-booking";
+import type { PublicPaymentInfo, PublicTravelInfo } from "@/lib/domain/public-booking";
+import { readStripeConfig } from "@/server/payments/stripe";
+import { decryptToken, encryptToken } from "@/server/payments/signing";
+import { travelSecret } from "@/server/travel/service";
 
 /**
  * Réservation publique côté serveur. Utilise UNIQUEMENT le client anonyme
  * et les fonctions public_* de la base (aucun accès aux tables, aucune clé
  * service_role). Les créneaux viennent du moteur de l'agenda.
  */
+
+/** Réservation temporaire renvoyée par la base pour une prestation avec arrhes. */
+export interface DepositHold {
+  hold_id: string;
+  deposit_cents: number;
+  total_cents: number;
+  travel_fee_cents: number;
+  service_name: string;
+  stripe_account_id: string;
+  deposit_kind: "arrhes" | "acompte";
+  customer_email: string;
+  checkout_session_id: string | null;
+  expires_at: string;
+}
+
+/** Suivi du paiement par la cliente (lien privé). */
+export async function loadHoldStatus(holdId: string, token: string | null) {
+  const hash = hashIncomingToken(token);
+  const supabase = createSupabasePublicClient();
+  if (!hash || !supabase) return null;
+  const { data, error } = await supabase.rpc("public_hold_status", { p_hold: holdId, p_token_hash: hash });
+  if (error || !data) return null;
+  return data as { status: "open" | "converted" | "expired" | "cancelled" | "refund_required"; deposit_cents: number; total_cents: number; deposit_kind: "arrhes" | "acompte"; starts_at: string; service_name: string | null; expires_at: string; checkout_session_id: string | null; stripe_account_id: string | null; slug: string };
+}
 
 export interface PublicPageView extends PublicPage {
   logoUrl: string | null;
@@ -48,6 +75,9 @@ export const loadPublicPage = cache(async (slug: string): Promise<PublicPageView
   const travel = await supabase.rpc("public_travel_info", { p_slug: slug });
   page.travel = travel.error ? null : ((travel.data as PublicTravelInfo | null) ?? null);
   if (page.travel) page.travel.included_km = Number(page.travel.included_km);
+  const payment = await supabase.rpc("public_payment_info", { p_slug: slug });
+  page.payment = payment.error ? null : ((payment.data as PublicPaymentInfo | null) ?? null);
+  if (page.payment && (!readStripeConfig() || !travelSecret())) page.payment.online = false;
   const url = (bucket: string, path: string | null) => (path ? supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl : null);
   const photoUrls: Record<string, string> = {};
   for (const s of page.services) {
@@ -80,7 +110,7 @@ export async function loadPublicSlots(input: {
   if (!page) return { ok: false, message: "La réservation en ligne n'est pas ouverte pour le moment." };
   const service = page.services.find((s) => s.id === input.serviceId);
   if (!service || !service.places.some((p) => p.place === input.place)) return { ok: false, message: "Cette prestation n'est plus réservable en ligne." };
-  if (requiresDeposit(service)) return { ok: false, message: translatePublicError("MOKA_DEPOSIT_REQUIRED").message };
+  if (requiresDeposit(service) && !page.payment?.online) return { ok: false, message: translatePublicError("MOKA_DEPOSIT_REQUIRED").message };
 
   const tz = page.settings.timezone;
   const withTravel = travelEnabled(page);
@@ -279,7 +309,7 @@ export async function createPublicBooking(input: {
   comment: string;
   idempotencyKey: string;
   geo?: unknown;
-}): Promise<PublicActionResult<{ token: string | null; duplicate: boolean; emailStatus: string | null }>> {
+}): Promise<PublicActionResult<{ token: string | null; duplicate: boolean; emailStatus: string | null; payment?: DepositHold & { slug: string; businessName: string } }>> {
   const supabase = createSupabasePublicClient();
   if (!supabase) return { ok: false, code: null, message: "La réservation en ligne est momentanément indisponible." };
   // Déplacements : trajets du créneau choisi calculés et enregistrés AVANT la confirmation (vérifiés par la base).
@@ -293,7 +323,10 @@ export async function createPublicBooking(input: {
       if (!filter.accept(startsAt)) return { ok: false, ...translatePublicError("MOKA_TRAVEL_TOO_SHORT") };
     }
   }
-  const { token, hash } = generateManageToken();
+  const generated = generateManageToken();
+  let { token } = generated;
+  const { hash } = generated;
+  const secret = travelSecret();
   const { data, error } = await supabase.rpc("public_create_booking", {
     p: {
       slug: input.slug,
@@ -313,12 +346,21 @@ export async function createPublicBooking(input: {
       idempotency_key: input.idempotencyKey,
       token_hash: hash,
       geo: input.geo ?? null,
+      // Lien de gestion chiffré : le webhook Stripe l'utilisera pour l'email de confirmation.
+      enc_token: secret ? encryptToken(token, secret) : null,
     },
   });
   if (error || !data) {
     const t = translatePublicError(error?.message);
     if (!t.code) console.error("[réservation] création", { code: error?.code });
     return { ok: false, ...t };
+  }
+  const hold = data as DepositHold & { payment_required?: boolean; existing?: boolean; enc_token?: string | null };
+  if (hold.payment_required) {
+    // Nouvelle tentative : on reprend le lien de la première demande.
+    if (hold.existing) token = (secret && hold.enc_token ? decryptToken(hold.enc_token, secret) : null) ?? "";
+    const page = await loadPublicPage(input.slug);
+    return { ok: true, token: token || null, duplicate: false, emailStatus: null, payment: { ...hold, slug: input.slug, businessName: page?.business.name ?? "" } };
   }
   const result = data as { appointment_id: string; duplicate: boolean; notifications: QueuedNotification[] };
   if (result.duplicate) return { ok: true, token: null, duplicate: true, emailStatus: null };
