@@ -59,6 +59,10 @@ export function translateAppointmentError(message: string | undefined): string {
   if (m.includes("MOKA_NOT_FOUND")) return "Rendez-vous introuvable.";
   if (m.includes("appointments_home_address")) return "Indiquez l'adresse d'intervention pour un rendez-vous à domicile.";
   if (m.includes("availability_rules_no_overlap")) return "Cette plage chevauche une autre plage du même jour.";
+  if (m.includes("MOKA_TRAVEL_TOO_SHORT")) return "Le temps de trajet avec un rendez-vous voisin ne tient pas (marge de sécurité comprise).";
+  if (m.includes("MOKA_TRAVEL_UNKNOWN")) return "Le temps de trajet avec un rendez-vous voisin n'a pas pu être vérifié. Réessayez, ou enregistrez sans vérifier le trajet.";
+  if (m.includes("MOKA_ADDRESS_NOT_VERIFIED")) return "Adresse non localisée : impossible de vérifier les trajets.";
+  if (m.includes("MOKA_PLAN_OUTDATED")) return "L'agenda a changé depuis la proposition : relancez l'optimisation.";
   return "L'enregistrement a échoué. Réessayez dans un instant.";
 }
 

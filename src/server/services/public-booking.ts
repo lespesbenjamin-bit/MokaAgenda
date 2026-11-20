@@ -19,6 +19,9 @@ import { SERVICE_PHOTO_BUCKET } from "@/server/repositories/catalog";
 import { sendEmail } from "@/server/notifications/mailer";
 import { renderEmail, type EmailBooking, type NotificationKind } from "@/server/notifications/templates";
 import { generateManageToken, hashIncomingToken } from "@/server/security/tokens";
+import { buildTravelFilter, travelEnabled } from "./public-travel";
+import type { LatLng } from "@/lib/domain/travel";
+import type { PublicTravelInfo } from "@/lib/domain/public-booking";
 
 /**
  * Réservation publique côté serveur. Utilise UNIQUEMENT le client anonyme
@@ -42,6 +45,9 @@ export const loadPublicPage = cache(async (slug: string): Promise<PublicPageView
   }
   if (!data) return null;
   const page = data as PublicPage;
+  const travel = await supabase.rpc("public_travel_info", { p_slug: slug });
+  page.travel = travel.error ? null : ((travel.data as PublicTravelInfo | null) ?? null);
+  if (page.travel) page.travel.included_km = Number(page.travel.included_km);
   const url = (bucket: string, path: string | null) => (path ? supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl : null);
   const photoUrls: Record<string, string> = {};
   for (const s of page.services) {
@@ -65,6 +71,10 @@ export async function loadPublicSlots(input: {
   days: number;
   excludeTokenHash?: string | null;
   now?: Date;
+  /** Adresse vérifiée (jeton signé) pour une prestation à domicile. */
+  geo?: unknown;
+  /** Coordonnées connues côté serveur (déplacement d'un rendez-vous existant). */
+  coords?: LatLng | null;
 }): Promise<{ ok: true; days: DaySlots[] } | { ok: false; message: string }> {
   const page = await loadPublicPage(input.slug);
   if (!page) return { ok: false, message: "La réservation en ligne n'est pas ouverte pour le moment." };
@@ -73,7 +83,8 @@ export async function loadPublicSlots(input: {
   if (requiresDeposit(service)) return { ok: false, message: translatePublicError("MOKA_DEPOSIT_REQUIRED").message };
 
   const tz = page.settings.timezone;
-  const days = Math.min(Math.max(input.days, 1), 31);
+  const withTravel = travelEnabled(page);
+  const days = Math.min(Math.max(input.days, 1), withTravel ? 7 : 31);
   const from = zonedToUtc(addDays(input.fromDay, -1), 0, tz);
   const to = zonedToUtc(addDays(input.fromDay, days + 1), 0, tz);
   const supabase = createSupabasePublicClient()!;
@@ -86,6 +97,13 @@ export async function loadPublicSlots(input: {
   if (error || !data) return { ok: false, message: translatePublicError(error?.message).message };
   const ctx = toAvailabilityContext(data as PublicAvailabilityRaw, tz);
   const now = input.now ?? new Date();
+  // Déplacements activés : seuls les créneaux compatibles avec les trajets sont proposés.
+  let accept: (d: Date) => boolean = () => true;
+  if (withTravel) {
+    const filter = await buildTravelFilter(supabase, page, service, input.place, { geo: input.geo, coords: input.coords }, from, to);
+    if (!filter.ok) return { ok: false, message: filter.message };
+    accept = filter.accept;
+  }
   const out: DaySlots[] = [];
   for (let i = 0; i < days; i++) {
     const day = addDays(input.fromDay, i);
@@ -93,7 +111,7 @@ export async function loadPublicSlots(input: {
       now,
       windowDays: page.settings.booking_window_days,
       stepMinutes: page.settings.slot_step_minutes,
-    });
+    }).filter(accept);
     out.push({ day, slots: slots.map((d) => d.toISOString()) });
   }
   return { ok: true, days: out };
@@ -134,6 +152,14 @@ export interface PublicBooking {
   salon: { line1: string; line2: string | null; postal_code: string | null; city: string } | null;
   policy: { cancellation_notice_hours: number; customer_can_cancel: boolean; customer_can_reschedule: boolean; cancellation_policy: string | null };
   reschedule_count: number;
+}
+
+export async function loadBookingCoords(hash: string): Promise<LatLng | null> {
+  const supabase = createSupabasePublicClient();
+  if (!supabase) return null;
+  const { data } = await supabase.rpc("public_booking_coords", { p_token_hash: hash });
+  const c = data as { lat: number | null; lng: number | null } | null;
+  return c && c.lat != null && c.lng != null ? { lat: Number(c.lat), lng: Number(c.lng) } : null;
 }
 
 export async function loadBookingByHash(hash: string): Promise<PublicBooking | null> {
@@ -252,9 +278,21 @@ export async function createPublicBooking(input: {
   address: { line1: string; line2: string; postalCode: string; city: string } | null;
   comment: string;
   idempotencyKey: string;
+  geo?: unknown;
 }): Promise<PublicActionResult<{ token: string | null; duplicate: boolean; emailStatus: string | null }>> {
   const supabase = createSupabasePublicClient();
   if (!supabase) return { ok: false, code: null, message: "La réservation en ligne est momentanément indisponible." };
+  // Déplacements : trajets du créneau choisi calculés et enregistrés AVANT la confirmation (vérifiés par la base).
+  const page = await loadPublicPage(input.slug);
+  if (page && travelEnabled(page)) {
+    const service = page.services.find((s) => s.id === input.serviceId);
+    if (service) {
+      const startsAt = new Date(input.startsAt);
+      const filter = await buildTravelFilter(supabase, page, service, input.place, { geo: input.geo }, new Date(startsAt.getTime() - 13 * 3_600_000), new Date(startsAt.getTime() + 13 * 3_600_000));
+      if (!filter.ok) return { ok: false, code: "MOKA_TRAVEL_UNKNOWN", message: filter.message };
+      if (!filter.accept(startsAt)) return { ok: false, ...translatePublicError("MOKA_TRAVEL_TOO_SHORT") };
+    }
+  }
   const { token, hash } = generateManageToken();
   const { data, error } = await supabase.rpc("public_create_booking", {
     p: {
@@ -274,6 +312,7 @@ export async function createPublicBooking(input: {
       accept_terms: true,
       idempotency_key: input.idempotencyKey,
       token_hash: hash,
+      geo: input.geo ?? null,
     },
   });
   if (error || !data) {
@@ -303,6 +342,18 @@ export async function reschedulePublicBooking(token: string, startsAt: string): 
   const hash = hashIncomingToken(token);
   if (!supabase || !hash) return { ok: false, ...translatePublicError("MOKA_NOT_FOUND") };
   const before = await loadBookingByHash(hash);
+  if (before) {
+    const page = await loadPublicPage(before.business.slug);
+    if (page && travelEnabled(page)) {
+      const { data: c } = await supabase.rpc("public_booking_coords", { p_token_hash: hash });
+      const coords = c && (c as { lat: number | null }).lat != null ? { lat: Number((c as { lat: number }).lat), lng: Number((c as { lng: number }).lng) } : null;
+      const timing = { prep_minutes: before.prep_minutes, duration_minutes: before.duration_minutes, cleanup_minutes: before.cleanup_minutes, buffer_minutes: before.buffer_minutes };
+      const at = new Date(startsAt);
+      const filter = await buildTravelFilter(supabase, page, timing, before.place, { coords }, new Date(at.getTime() - 13 * 3_600_000), new Date(at.getTime() + 13 * 3_600_000));
+      if (!filter.ok) return { ok: false, code: "MOKA_TRAVEL_UNKNOWN", message: filter.message };
+      if (!filter.accept(at)) return { ok: false, ...translatePublicError("MOKA_TRAVEL_TOO_SHORT") };
+    }
+  }
   const { data, error } = await supabase.rpc("public_reschedule_booking", { p_token_hash: hash, p_starts_at: startsAt });
   if (error) return { ok: false, ...translatePublicError(error.message) };
   await dispatchNotifications(supabase, token, hash, (data as { notifications: QueuedNotification[] }).notifications, {

@@ -6,7 +6,7 @@ describe("navigation", () => {
     expect(navigation.map((i) => i.label)).toEqual([
       "Tableau de bord",
       "Agenda",
-      "Tournées",
+      "Mes tournées",
       "Clientes",
       "Prestations",
       "Finances",
@@ -22,7 +22,7 @@ describe("navigation", () => {
 
   it("marque explicitement les modules non développés comme « à venir »", () => {
     const available = navigation.filter((i) => i.status === "available").map((i) => i.key);
-    expect(available).toEqual(["dashboard", "agenda", "customers", "services", "settings"]);
+    expect(available).toEqual(["dashboard", "agenda", "tours", "customers", "services", "settings"]);
   });
 
   it("affiche exactement 3 modules + « Plus » dans la barre mobile", () => {

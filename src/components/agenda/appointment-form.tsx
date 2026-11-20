@@ -175,6 +175,12 @@ export function AppointmentForm({
                 ))}
               </span>
             )}
+            {state.travelSkippable && (
+              <label className="mt-3 flex items-start gap-2 font-medium text-foreground">
+                <input type="checkbox" name="skip_travel_check" className="mt-1 size-4 accent-[var(--primary)]" />
+                Enregistrer sans vérifier le trajet (je m&apos;organise moi-même)
+              </label>
+            )}
           </FormAlert>
         )}
 

@@ -8,6 +8,7 @@ import { FormAlert } from "@/components/ui/form-alert";
 import { PageHeader } from "@/components/layout/page-header";
 import { ShareLink } from "@/components/booking/share-link";
 import { BookingSettingsForm } from "@/components/settings/booking-settings-form";
+import { SettingsTabs } from "@/components/settings/settings-tabs";
 import { requireBusinessContext } from "@/server/services/business-context";
 import { createSupabaseServerClient } from "@/server/integrations/supabase/server";
 import { getLogoUrl } from "@/server/repositories/business";
@@ -43,7 +44,8 @@ export default async function SettingsPage() {
 
   return (
     <div>
-      <PageHeader title={item.label} description="Votre page de réservation en ligne et ses règles." />
+      <PageHeader title={item.label} description="Votre page de réservation en ligne, vos déplacements et vos zones." />
+      <SettingsTabs active="/parametres" />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <Card>
