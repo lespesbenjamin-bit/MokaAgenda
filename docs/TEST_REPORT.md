@@ -1,5 +1,53 @@
 # Rapport de tests
 
+## Sprint 3 — Agenda et disponibilités (20 novembre 2026)
+
+Branche : `sprint-3-agenda`. Seuls les tests réellement exécutés sont indiqués comme réussis.
+
+### Synthèse des exécutions
+
+| Suite | Commande | Résultat |
+|---|---|---|
+| Typage TypeScript strict | `npm run typecheck` | ✅ 0 erreur |
+| Lint | `npm run lint` | ✅ 0 erreur, 0 avertissement |
+| Tests unitaires | `npm test` | ✅ 103 / 103 (dont 15 nouveaux pour le moteur de disponibilités et les statuts) |
+| Base de données + RLS (PostgreSQL 16) | `npm run test:db` | ✅ 103 / 103 (dont 35 Sprint 3 et 3 sur l'agenda démo) |
+| HTTP — build production | `npm run test:e2e:all` | ✅ 35 / 35 |
+| HTTP — build sans configuration | idem | ✅ 2 / 2 |
+| HTTP — build démo | idem | ✅ 36 / 36 |
+| Non-régression Sprints 1 et 2 | toutes les suites | ✅ |
+
+**Contrôle des tests** : en supprimant la contrainte anti-chevauchement et le contrôle des horaires, 11 tests échouent. Les tests détectent donc l'absence de ces protections.
+
+### Couverture
+
+- **Création** : horaires calculés, montants figés (total, acompte, solde), prestation figée, historique « créé » avec l'auteur ; refus sans prestation.
+- **Modification / déplacement** : déplacement historisé ; déplacement vers un créneau occupé refusé **sans rien modifier** ; changement de prestation avec recalcul des montants ; prix ajusté manuellement sans toucher au catalogue.
+- **Annulation et statuts** : transitions autorisées et refusées, « terminé » / « absente » impossibles avant l'heure, rendez-vous clôturé non modifiable, annulation datée qui libère le créneau, historique en lecture seule et impossible à effacer.
+- **Conflits** : chevauchement refusé, rendez-vous accolés acceptés, préparation et temps tampon pris en compte.
+- **Horaires** : pause, durée dépassant la plage, jour fermé, avant ouverture, alternance domicile / institut d'une hybride, adresse obligatoire à domicile, congés et indisponibilité limitée à un lieu, plages qui se chevauchent refusées, enregistrement des horaires tout ou rien.
+- **Prestations de durées différentes** : 15 min à 2 h 30 (démo) ; 30 min + 15 min de tampon (tests).
+- **Changement de tarif après réservation** : le rendez-vous garde son prix ; une prestation archivée reste identifiable.
+- **Isolation (2 entreprises + staff + visiteur)** : aucune lecture croisée (rendez-vous, prestations du rendez-vous, horaires, blocages, historique) ; impossible de modifier, annuler ou déplacer chez l'autre, ni de créer un rendez-vous chez l'autre ou avec sa cliente, son adresse ou sa prestation ; les agendas de deux entreprises ne se gênent pas ; le staff prend des rendez-vous mais ne modifie pas les horaires ; blocages de réservation en ligne inaccessibles.
+- **Réservations simultanées** : deux connexions réservent le même créneau au même instant → une seule réussit, l'autre est refusée.
+- **Fuseaux et changement d'heure** : jour du passage à l'heure d'été (28 mars 2027) correct ; entreprise en Martinique (UTC−4) contrôlée dans son propre fuseau ; conversions heure locale ↔ UTC testées en hiver, en été et le jour du changement.
+- **Moteur côté application** : mêmes scénarios que PostgreSQL, créneaux libres (pauses, rendez-vous, délai minimum, jours fermés ou bloqués).
+- **Démo** : horaires hybrides et plus de 20 rendez-vous réellement insérés dans PostgreSQL (horaires et absence de chevauchement vérifiés par la base), passés terminés / annulés / absents, futurs confirmés / en attente, adresses à domicile, prestation figée pour chacun ; annulation d'un rendez-vous démo.
+- **HTTP** : 4 nouvelles pages privées redirigent vers la connexion.
+- **Visuel** (aperçu local, données démo, ordinateur 1440 px et mobile 390 px) : semaine, jour, mois, liste mobile, formulaire de rendez-vous, horaires et blocages. Corrections : filtre par défaut qui masquait les rendez-vous terminés, champs d'heure trop étroits en format 12 h.
+
+### Ce qui n'a PAS pu être testé ici
+
+| Point | Raison | Procédure |
+|---|---|---|
+| Appels réels de l'application vers Supabase (création, déplacement, statut depuis l'interface) | pas d'accès à votre projet ; serveurs Supabase locaux non téléchargeables dans cet environnement | `docs/SETUP.md` §4 « Sprint 3 » |
+| Glisser-déposer réel dans un navigateur connecté | dépend du point précédent | idem |
+| Réinitialisation démo avec l'agenda | projet démo non créé | `docs/SETUP.md` §3 |
+
+Chaque opération de l'interface a son équivalent SQL testé avec les droits réels d'une utilisatrice.
+
+---
+
 ## Sprint 2 — Prestations et CRM clientes (20 novembre 2026)
 
 Branche : `sprint-2-prestations-clientes`. Seuls les tests réellement exécutés sont indiqués comme réussis.

@@ -36,11 +36,17 @@ describe("fixtures démo", () => {
   it("utilisent un domaine email non routable", () => {
     expect(fixtures.business.email.endsWith(".demo")).toBe(true);
   });
-  it("ont des rendez-vous qui référencent des clientes et prestations existantes", () => {
-    for (const a of fixtures.appointments) {
-      expect(fixtures.customers[a.customer]).toBeDefined();
-      expect(fixtures.services[a.service]).toBeDefined();
-      expect(["pending", "confirmed", "completed", "cancelled", "no_show"]).toContain(a.status);
+  it("ont des horaires hebdomadaires valides et sans chevauchement", () => {
+    for (const r of fixtures.availability) {
+      expect(r.end).toBeGreaterThan(r.start);
+      expect(r.weekday).toBeGreaterThanOrEqual(1);
+      expect(r.weekday).toBeLessThanOrEqual(7);
+    }
+    const days = new Map<number, { start: number; end: number }[]>();
+    for (const r of fixtures.availability) days.set(r.weekday, [...(days.get(r.weekday) ?? []), r]);
+    for (const ranges of days.values()) {
+      const sorted = ranges.sort((x, y) => x.start - y.start);
+      for (let i = 1; i < sorted.length; i++) expect(sorted[i].start).toBeGreaterThanOrEqual(sorted[i - 1].end);
     }
   });
 });

@@ -11,6 +11,7 @@ nom existe déjà. Utilisez des projets Supabase **dédiés** à Moka Réservati
    1. `20261119000001_sprint1_foundations.sql`
    2. `20261119000002_storage_business_logos.sql`
    3. `20261120000001_sprint2_catalog_crm.sql` (Sprint 2)
+   4. `20261121000001_sprint3_agenda.sql` (Sprint 3)
 3. **Authentication → Sign In / Providers → Email** : *Confirm email* activé ; longueur minimale du mot de passe : 8.
 4. **Authentication → URL Configuration** :
    - Site URL : `https://VOTRE-DOMAINE-PROD`
@@ -66,7 +67,7 @@ La tâche planifiée existe aussi sur le projet de production, où la route rép
 
 ## Variables d'environnement
 
-Le Sprint 2 n'ajoute **aucune** variable en production. `MOKA_UI_PREVIEW=1` sert uniquement en local pour l'aperçu des écrans ; ne jamais la définir sur Vercel.
+Les Sprints 2 et 3 n'ajoutent **aucune** variable en production. `MOKA_UI_PREVIEW=1` sert uniquement en local pour l'aperçu des écrans ; ne jamais la définir sur Vercel.
 
 ## 4. Recette manuelle (à faire une fois configuré)
 
@@ -87,3 +88,14 @@ Le Sprint 2 n'ajoute **aucune** variable en production. `MOKA_UI_PREVIEW=1` sert
 - [ ] Ajouter une adresse travail, la définir principale
 - [ ] Importer un CSV de 3 lignes, puis réimporter le même fichier → « Déjà importée »
 - [ ] Recharger la page : tout est conservé
+
+### Sprint 3
+- [ ] Agenda › Horaires : lundi 9h–12h institut + 14h–18h domicile, mardi 9h–18h, mercredi fermé ; enregistrer
+- [ ] Créer un rendez-vous lundi 10h en institut → visible dans l'agenda et le tableau de bord
+- [ ] Tenter lundi 12h30 (pause) puis mercredi (fermé) → refus clair avec créneaux proposés
+- [ ] Tenter un second rendez-vous à 10h30 le même lundi → refus (chevauchement)
+- [ ] Rendez-vous lundi 15h à domicile → adresse de la cliente reprise automatiquement
+- [ ] Sur ordinateur, glisser un rendez-vous vers un autre créneau ; sur téléphone, « Modifier ou déplacer »
+- [ ] Bloquer une journée de congé, puis tenter un rendez-vous ce jour-là → refus
+- [ ] Annuler un rendez-vous avec un motif → historique mis à jour, créneau libéré
+- [ ] Changer le prix d'une prestation au catalogue → le rendez-vous existant garde l'ancien prix

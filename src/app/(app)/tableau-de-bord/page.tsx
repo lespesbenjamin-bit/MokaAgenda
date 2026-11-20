@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight, BarChart3, Check, Circle, Home, MapPin, Store } from "lucide-react";
+import { ArrowUpRight, CalendarPlus, Check, Circle, Home, MapPin, Store } from "lucide-react";
 import { navigation } from "@/config/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,15 +8,14 @@ import { FormAlert } from "@/components/ui/form-alert";
 import { PageHeader } from "@/components/layout/page-header";
 import { BusinessBadge } from "@/components/layout/business-badge";
 import { requireBusinessContext } from "@/server/services/business-context";
-import { demoFixtures, demoUpcomingAppointments } from "@/server/demo/fixtures";
+import { loadAgendaKpis } from "@/server/services/dashboard";
+import { createSupabaseServerClient } from "@/server/integrations/supabase/server";
+import { STATUS_LABELS } from "@/lib/domain/appointments";
 import { ACTIVITY_MODE_LABELS, needsSalonAddress, needsTravelBase } from "@/lib/validation/onboarding";
 import { isDemo } from "@/lib/env";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Tableau de bord" };
-
-const euros = (cents: number) =>
-  new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(cents / 100);
 
 export default async function DashboardPage({ searchParams }: PageProps<"/tableau-de-bord">) {
   const ctx = await requireBusinessContext();
@@ -26,6 +25,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/tablea
   const kinds = new Set(locations.map((l) => l.kind));
   const firstName = ctx.fullName?.split(" ")[0];
 
+  const timeZone = settings?.timezone ?? "Europe/Paris";
+  const supabase = await createSupabaseServerClient();
+  const agenda = await loadAgendaKpis(supabase, business.id, timeZone);
   const setupSteps = [
     { label: "Compte créé et email confirmé", done: true },
     { label: "Informations de l'entreprise", done: Boolean(business.name) },
@@ -35,6 +37,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/tablea
       done: Boolean(mode) && (!needsSalonAddress(mode!) || kinds.has("salon")) && (!needsTravelBase(mode!) || kinds.has("travel_base")),
     },
     { label: "Paramètres de l'agenda", done: Boolean(settings) },
+    { label: "Horaires de travail", done: agenda.hasRules },
     { label: "Logo", done: Boolean(business.logo_path), optional: true },
     { label: "Conditions générales de réservation", done: Boolean(settings?.booking_terms), optional: true },
   ];
@@ -45,19 +48,14 @@ export default async function DashboardPage({ searchParams }: PageProps<"/tablea
   const salon = locations.find((l) => l.kind === "salon");
   const travel = locations.find((l) => l.kind === "travel_base");
 
-  const kpis = isDemo
-    ? [
-        { label: "Rendez-vous à venir", value: String(demoFixtures.kpis.upcoming_appointments) },
-        { label: "Chiffre d'affaires du mois", value: euros(demoFixtures.kpis.monthly_revenue_cents) },
-        { label: "Acomptes encaissés", value: euros(demoFixtures.kpis.deposits_collected_cents) },
-        { label: "Nouvelles clientes", value: String(demoFixtures.kpis.new_customers) },
-      ]
-    : [
-        { label: "Rendez-vous à venir", value: null },
-        { label: "Chiffre d'affaires du mois", value: null },
-        { label: "Acomptes encaissés", value: null },
-        { label: "Nouvelles clientes", value: null },
-      ];
+  const kpis = [
+    { label: "Rendez-vous aujourd'hui", value: agenda.kpis.today },
+    { label: "Rendez-vous à venir", value: agenda.kpis.upcoming },
+    { label: "Cette semaine", value: agenda.kpis.week },
+    { label: "Terminés ce mois-ci", value: agenda.kpis.completed },
+    { label: "Annulés ce mois-ci", value: agenda.kpis.cancelled },
+  ];
+  const nextFmt = new Intl.DateTimeFormat("fr-FR", { timeZone, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
   return (
     <>
@@ -129,31 +127,60 @@ export default async function DashboardPage({ searchParams }: PageProps<"/tablea
       </div>
 
       <section className="mt-10" aria-labelledby="kpi-title">
-        <div className="mb-4 flex items-center gap-3">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
           <h2 id="kpi-title" className="font-display text-xl font-bold">
-            Indicateurs
+            Agenda
           </h2>
-          {isDemo && <Badge variant="warning">Démo · chiffres fictifs</Badge>}
+          {isDemo && <Badge variant="warning">Démo · rendez-vous fictifs</Badge>}
+          <Link href="/agenda" className="ml-auto text-sm font-semibold text-primary hover:underline">
+            Ouvrir l&apos;agenda
+          </Link>
         </div>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {kpis.map((kpi) =>
-            kpi.value ? (
-              <div key={kpi.label} className="rounded-xl border border-border bg-card p-5">
-                <p className="text-sm text-muted-foreground">{kpi.label}</p>
-                <p className="mt-1 text-2xl font-bold tracking-tight">{kpi.value}</p>
-              </div>
-            ) : (
-              <div key={kpi.label} className="rounded-xl border border-dashed border-line-strong bg-card/60 p-5">
-                <BarChart3 className="size-4 text-muted-foreground" />
-                <p className="mt-3 text-sm font-medium">{kpi.label}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Disponible avec l&apos;agenda</p>
-              </div>
-            ),
-          )}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          {kpis.map((kpi) => (
+            <div key={kpi.label} className="rounded-xl border border-border bg-card p-5">
+              <p className="text-sm text-muted-foreground">{kpi.label}</p>
+              <p className="mt-1 text-2xl font-bold tracking-tight">{kpi.value}</p>
+            </div>
+          ))}
         </div>
+        <p className="mt-2 text-xs text-muted-foreground">Chiffre d&apos;affaires et rentabilité : disponibles avec le module Finances.</p>
       </section>
 
-      {isDemo && <DemoCalendar />}
+      <section className="mt-8" aria-labelledby="next-title">
+        <h2 id="next-title" className="mb-4 font-display text-xl font-bold">
+          Prochains rendez-vous
+        </h2>
+        {agenda.next.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-line-strong bg-card px-6 py-10 text-center">
+            <p className="text-sm text-muted-foreground">Aucun rendez-vous prévu dans les 30 prochains jours.</p>
+            <Link href="/agenda/nouveau" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
+              <CalendarPlus className="size-4" /> Créer un rendez-vous
+            </Link>
+          </div>
+        ) : (
+          <Card>
+            <ul className="divide-y divide-border">
+              {agenda.next.map((a) => (
+                <li key={a.id}>
+                  <Link href={`/agenda/${a.id}`} className="flex flex-col gap-1 px-5 py-4 hover:bg-surface sm:flex-row sm:items-center sm:gap-4">
+                    <span className="w-44 shrink-0 text-sm font-semibold capitalize">{nextFmt.format(new Date(a.startsAt))}</span>
+                    <span className="flex-1 text-sm">
+                      {a.service} · <span className="text-muted-foreground">{a.customer}</span>
+                    </span>
+                    <span className="flex gap-2">
+                      <Badge variant="soon">{a.place === "home" ? `À domicile${a.city ? ` · ${a.city}` : ""}` : "En institut"}</Badge>
+                      <Badge variant={a.status === "confirmed" ? "available" : "warning"}>{STATUS_LABELS[a.status]}</Badge>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+      </section>
+
+
 
       <section className="mt-10" aria-labelledby="modules-title">
         <h2 id="modules-title" className="mb-4 font-display text-xl font-bold">
@@ -197,36 +224,5 @@ function Info({ icon: Icon, label, value }: { icon: typeof Home; label: string; 
         <dd className="mt-0.5 font-medium break-words">{value}</dd>
       </div>
     </div>
-  );
-}
-
-function DemoCalendar() {
-  const items = demoUpcomingAppointments().slice(0, 5);
-  const fmt = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-  return (
-    <section className="mt-10" aria-labelledby="demo-cal-title">
-      <div className="mb-4 flex items-center gap-3">
-        <h2 id="demo-cal-title" className="font-display text-xl font-bold">
-          Calendrier d&apos;exemple
-        </h2>
-        <Badge variant="warning">Démo · rendez-vous fictifs</Badge>
-      </div>
-      <Card>
-        <ul className="divide-y divide-border">
-          {items.map((a, i) => (
-            <li key={i} className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-center sm:gap-4">
-              <span className="w-44 shrink-0 text-sm font-semibold capitalize">{fmt.format(a.date)}</span>
-              <span className="flex-1 text-sm">
-                {a.service} · <span className="text-muted-foreground">{a.customer}</span>
-              </span>
-              <span className="flex gap-2">
-                <Badge variant="soon">{a.where === "home" ? "À domicile" : "En institut"}</Badge>
-                <Badge variant={a.status === "confirmed" ? "available" : "default"}>{a.status === "confirmed" ? "Confirmé" : "En attente"}</Badge>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </Card>
-    </section>
   );
 }

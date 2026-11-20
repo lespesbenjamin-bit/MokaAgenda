@@ -36,6 +36,10 @@ describe.runIf(MODE !== "noenv")("protection des pages privées (visiteuse non c
     "/clientes/nouvelle",
     "/clientes/import",
     "/clientes/00000000-0000-0000-0000-000000000000?onglet=finances",
+    "/agenda/nouveau",
+    "/agenda/nouveau?debut=2027-01-04T09:00:00Z",
+    "/agenda/disponibilites",
+    "/agenda/00000000-0000-0000-0000-000000000000",
   ];
 
   it.each(privatePaths)("%s redirige vers la connexion", async (path) => {
@@ -43,7 +47,7 @@ describe.runIf(MODE !== "noenv")("protection des pages privées (visiteuse non c
     expect(res.status).toBe(307);
     const location = new URL(res.headers.get("location")!, BASE);
     expect(location.pathname).toBe("/connexion");
-    expect(location.searchParams.get("next")).toBe(path);
+    expect(decodeURIComponent(location.searchParams.get("next") ?? "")).toBe(decodeURIComponent(path));
   });
 
   it("un faux cookie de session ne donne pas accès (échec fermé)", async () => {

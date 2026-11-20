@@ -1,6 +1,6 @@
 {
   "_avertissement": "Données ENTIÈREMENT FICTIVES, réservées à l'environnement de démonstration. Ne jamais importer en production.",
-  "version": 2,
+  "version": 3,
   "business": {
     "name": "Moka Beauty Studio",
     "activity": "Institut de beauté & soins à domicile",
@@ -1060,70 +1060,6 @@
       }
     }
   ],
-  "appointments": [
-    {
-      "day_offset": 0,
-      "time": "09:30",
-      "customer": 0,
-      "service": 4,
-      "where": "salon",
-      "status": "confirmed"
-    },
-    {
-      "day_offset": 0,
-      "time": "11:00",
-      "customer": 1,
-      "service": 8,
-      "where": "home",
-      "status": "confirmed"
-    },
-    {
-      "day_offset": 0,
-      "time": "14:30",
-      "customer": 2,
-      "service": 14,
-      "where": "salon",
-      "status": "pending"
-    },
-    {
-      "day_offset": 1,
-      "time": "10:00",
-      "customer": 3,
-      "service": 19,
-      "where": "home",
-      "status": "confirmed"
-    },
-    {
-      "day_offset": 1,
-      "time": "16:00",
-      "customer": 4,
-      "service": 15,
-      "where": "salon",
-      "status": "confirmed"
-    },
-    {
-      "day_offset": 2,
-      "time": "09:00",
-      "customer": 5,
-      "service": 2,
-      "where": "home",
-      "status": "confirmed"
-    },
-    {
-      "day_offset": 3,
-      "time": "15:00",
-      "customer": 6,
-      "service": 5,
-      "where": "salon",
-      "status": "pending"
-    }
-  ],
-  "kpis": {
-    "upcoming_appointments": 18,
-    "monthly_revenue_cents": 284000,
-    "deposits_collected_cents": 42000,
-    "new_customers": 7
-  },
   "categories": [
     {
       "name": "Épilation",
@@ -1155,5 +1091,76 @@
       "description": "Maquillage événementiel et cours",
       "position": 6
     }
-  ]
+  ],
+  "availability": [
+    {
+      "weekday": 1,
+      "start": 540,
+      "end": 720,
+      "place": "salon"
+    },
+    {
+      "weekday": 1,
+      "start": 840,
+      "end": 1080,
+      "place": "home"
+    },
+    {
+      "weekday": 2,
+      "start": 540,
+      "end": 1080,
+      "place": "home"
+    },
+    {
+      "weekday": 4,
+      "start": 540,
+      "end": 750,
+      "place": "salon"
+    },
+    {
+      "weekday": 4,
+      "start": 840,
+      "end": 1140,
+      "place": "salon"
+    },
+    {
+      "weekday": 5,
+      "start": 540,
+      "end": 750,
+      "place": "salon"
+    },
+    {
+      "weekday": 5,
+      "start": 840,
+      "end": 1140,
+      "place": "home"
+    },
+    {
+      "weekday": 6,
+      "start": 540,
+      "end": 780,
+      "place": "salon"
+    }
+  ],
+  "exceptions": [
+    {
+      "kind": "vacation",
+      "label": "Congés (fictif)",
+      "from_day_offset": 18,
+      "days": 3,
+      "place": null
+    },
+    {
+      "kind": "closure",
+      "label": "Formation (fictif)",
+      "from_day_offset": -20,
+      "days": 1,
+      "place": null
+    }
+  ],
+  "appointments_window": {
+    "past_days": 10,
+    "future_days": 14,
+    "per_range": 2
+  }
 }

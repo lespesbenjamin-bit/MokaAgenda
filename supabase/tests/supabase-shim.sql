@@ -20,6 +20,9 @@ alter default privileges in schema public grant all on functions to anon, authen
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 
 -- ─── auth ───────────────────────────────────────────────────────────
+create schema if not exists extensions;
+grant usage on schema extensions to anon, authenticated, service_role;
+
 create schema auth;
 grant usage on schema auth to anon, authenticated, service_role;
 

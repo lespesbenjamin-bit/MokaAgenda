@@ -25,9 +25,22 @@
 - [ ] Recette manuelle sur Supabase/Vercel (voir TEST_REPORT)
 - [ ] Écran Paramètres (modification après onboarding, CGV) — reporté
 
-## Sprint 3 — Agenda professionnel (non commencé, attend validation)
+## Sprint 3 — Agenda professionnel (développé, en attente de recette)
 
-- Table `appointments` avec instantané financier, vues jour/semaine/mois, création d'un rendez-vous (prestation, cliente, lieu, durée, prix)
+- [x] Tables rendez-vous, prestations figées, horaires, blocages, historique ; trajets et blocages en ligne préparés
+- [x] Conflits, horaires, pauses, fermetures garantis par PostgreSQL (fuseau horaire et changement d'heure)
+- [x] Protection contre les réservations simultanées
+- [x] Agenda jour / semaine / mois, filtres, glisser-déposer (ordinateur), formulaire (mobile)
+- [x] Fiche rendez-vous : statuts avec règles de passage, annulation motivée, historique
+- [x] Horaires par jour avec lieu (hybride), congés, fermetures, indisponibilités
+- [x] Tableau de bord : indicateurs réels de rendez-vous, prochains rendez-vous
+- [x] Démo : horaires hybrides et rendez-vous fictifs cohérents
+- [ ] Recette manuelle (voir SETUP §4 « Sprint 3 »)
+
+## Sprint 4 — Réservation en ligne (non commencé, attend validation)
+
+- Page publique de réservation utilisant `freeSlots()` et le même contrôle PostgreSQL
+- `booking_holds` pendant le paiement de l'acompte, statut « en attente » puis « confirmé »
 
 ## Sprints suivants
 

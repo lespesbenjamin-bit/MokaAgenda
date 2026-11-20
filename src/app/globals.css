@@ -103,3 +103,39 @@
     outline-offset: 2px;
   }
 }
+
+/* ─── Agenda (FullCalendar) aux couleurs Moka ─── */
+.moka-calendar {
+  --fc-border-color: var(--border);
+  --fc-today-bg-color: color-mix(in srgb, var(--moka-orange-soft) 45%, transparent);
+  --fc-now-indicator-color: var(--moka-orange);
+  --fc-page-bg-color: var(--card);
+  --fc-neutral-bg-color: var(--moka-surface);
+  --fc-list-event-hover-bg-color: var(--moka-surface);
+  --fc-event-text-color: var(--foreground);
+  --fc-highlight-color: color-mix(in srgb, var(--moka-orange) 18%, transparent);
+  font-size: 13px;
+}
+.moka-calendar .fc-col-header-cell-cushion,
+.moka-calendar .fc-daygrid-day-number { color: var(--foreground); font-weight: 600; text-transform: capitalize; }
+.moka-calendar .fc-timegrid-slot { height: 1.15rem; }
+.moka-calendar .fc-timegrid-slot-label-cushion { color: var(--muted-foreground); font-size: 11px; }
+.moka-calendar .fc-non-business, .moka-calendar .fc-timegrid-col { background: transparent; }
+.moka-calendar .fc-timegrid-col-frame { background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--border) 60%, transparent) 6px 7px); }
+.moka-calendar .fc-bg-event { opacity: 1; }
+.moka-calendar .moka-bg-hours-any, .moka-calendar .moka-bg-hours-salon { background: var(--card); }
+.moka-calendar .moka-bg-hours-home { background: color-mix(in srgb, var(--moka-orange-soft) 55%, white); }
+.moka-calendar .moka-bg-blocked, .moka-legend-blocked {
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--destructive) 10%, white) 0 6px, color-mix(in srgb, var(--destructive) 18%, white) 6px 12px);
+}
+.moka-calendar .moka-bg-label { display: block; padding: 2px 4px; font-size: 11px; font-weight: 600; color: var(--destructive); }
+.moka-calendar .fc-event { border-radius: 8px; border-width: 1px 1px 1px 4px; cursor: pointer; box-shadow: none; }
+.moka-calendar .moka-ev-home { background: var(--moka-orange-soft); border-color: var(--moka-orange); color: var(--foreground); }
+.moka-calendar .moka-ev-salon { background: #f4f4f5; border-color: var(--moka-ink); color: var(--foreground); }
+.moka-calendar .moka-ev-pending { border-style: dashed; }
+.moka-calendar .moka-ev-cancelled, .moka-calendar .moka-ev-no_show { opacity: 0.55; text-decoration: line-through; }
+.moka-calendar .moka-ev-completed { opacity: 0.8; }
+.moka-calendar .fc-daygrid-event .fc-event-main { color: var(--foreground); }
+.moka-calendar .fc-list-day-cushion { background: var(--moka-surface); text-transform: capitalize; }
+.moka-calendar .fc-list-event-dot { border-color: var(--moka-orange); }
+.moka-calendar .fc-scrollgrid { border-radius: 12px; overflow: hidden; }

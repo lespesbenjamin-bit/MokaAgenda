@@ -42,7 +42,7 @@ export const navigation: NavItem[] = [
     label: "Agenda",
     href: "/agenda",
     icon: CalendarDays,
-    status: "coming_soon",
+    status: "available",
     summary: "Vos rendez-vous à domicile et en institut, au même endroit.",
     planned: [
       "Vue jour, semaine et mois",
