@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { isSlotError } from "@/lib/domain/public-booking";
 import { isValidSlug } from "@/lib/domain/slug";
@@ -20,6 +20,60 @@ import {
 import { checkHomeAddress, type AddressCheckResult } from "@/server/services/public-travel";
 import { createSupabasePublicClient } from "@/server/integrations/supabase/public";
 import { requiresDeposit } from "@/lib/domain/public-booking";
+import { loadHoldStatus, type DepositHold } from "@/server/services/public-booking";
+import { abandonCheckout, createDepositCheckout, paymentOp, resumeCheckoutUrl } from "@/server/payments/service";
+import { requestOrigin } from "@/server/payments/stripe";
+
+const PAY_COOKIE = (holdId: string) => `moka_pay_${holdId.replace(/-/g, "")}`;
+const PAYMENT_DOWN = "Le paiement en ligne est momentanément indisponible. Aucun montant n'a été débité : réessayez dans quelques minutes.";
+
+/** Envoie la cliente sur la page de paiement Stripe (jamais de confirmation côté navigateur). */
+async function goToCheckout(p: DepositHold & { slug: string; businessName: string }, token: string | null): Promise<string | null> {
+  let url: string | null = null;
+  try {
+    url = p.checkout_session_id
+      ? await resumeCheckoutUrl(p.checkout_session_id, p.stripe_account_id)
+      : await createDepositCheckout(p, { slug: p.slug, origin: await requestOrigin(), businessName: p.businessName });
+  } catch (e) {
+    console.error("[paiement] création de la session", { code: (e as { code?: string }).code });
+    if (!p.checkout_session_id) await paymentOp("hold_cancel", { hold_id: p.hold_id }).catch(() => null);
+    return null;
+  }
+  if (url && token) {
+    (await cookies()).set(PAY_COOKIE(p.hold_id), token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/reserver", maxAge: 2 * 3600 });
+  }
+  return url;
+}
+
+export async function readPaymentToken(holdId: string): Promise<string | null> {
+  if (!UUID.test(holdId)) return null;
+  return (await cookies()).get(PAY_COOKIE(holdId))?.value ?? null;
+}
+
+export async function resumePaymentAction(slug: string, holdId: string): Promise<BookingState> {
+  if (!hitRateLimit("booking", await ip())) return { error: TOO_MANY };
+  const token = await readPaymentToken(holdId);
+  const st = await loadHoldStatus(holdId, token);
+  if (!st || st.status !== "open" || !st.stripe_account_id) return { error: "Cette réservation temporaire n'est plus active. Choisissez à nouveau un créneau." };
+  const page = await loadPublicPage(slug);
+  const url = await goToCheckout(
+    { hold_id: holdId, deposit_cents: st.deposit_cents, total_cents: st.total_cents, travel_fee_cents: 0, service_name: st.service_name ?? "Prestation", stripe_account_id: st.stripe_account_id, deposit_kind: st.deposit_kind, customer_email: "", checkout_session_id: st.checkout_session_id, expires_at: st.expires_at, slug, businessName: page?.business.name ?? "" },
+    token,
+  );
+  if (!url) return { error: PAYMENT_DOWN };
+  redirect(url);
+}
+
+export async function abandonPaymentAction(slug: string, holdId: string): Promise<BookingState> {
+  const token = await readPaymentToken(holdId);
+  const st = await loadHoldStatus(holdId, token);
+  if (!st) return { error: "Réservation temporaire introuvable." };
+  if (st.status === "open") {
+    const ok = await abandonCheckout(holdId, st.checkout_session_id, st.stripe_account_id).catch(() => false);
+    if (!ok) return { error: "Impossible d'annuler pour l'instant : si vous venez de payer, la confirmation arrive. Sinon, la réservation temporaire expirera d'elle-même dans 35 minutes au plus." };
+  }
+  redirect(`/reserver/${encodeURIComponent(slug)}?paiement=annule`);
+}
 
 /**
  * Actions publiques (sans compte). Chaque action : limitation de débit,
@@ -108,6 +162,11 @@ export async function createPublicBookingAction(_prev: BookingState, formData: F
   });
 
   if (!result.ok) return { error: result.message, slotUnavailable: isSlotError(result.code) };
+  if (result.payment) {
+    const url = await goToCheckout(result.payment, result.token);
+    if (!url) return { error: PAYMENT_DOWN };
+    redirect(url);
+  }
   if (result.duplicate || !result.token) {
     return { success: "Votre réservation est déjà enregistrée. Retrouvez sa confirmation dans votre boîte email." };
   }

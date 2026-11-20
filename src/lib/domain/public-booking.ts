@@ -61,6 +61,8 @@ export interface PublicPage {
   services: PublicService[];
   /** Déplacements (Sprint 5) : tarifs publics uniquement, jamais d'adresse privée. */
   travel?: PublicTravelInfo | null;
+  /** Paiement en ligne des arrhes (Sprint 6). */
+  payment?: PublicPaymentInfo | null;
 }
 
 export interface PublicTravelInfo {
@@ -103,17 +105,41 @@ export function formatAddress(a: PublicAddress | { line1: string | null; line2: 
 
 export const PLACE_LABELS: Record<Place, string> = { salon: "En institut", home: "À domicile" };
 
-/** Une prestation avec acompte n'est pas réservable en ligne avant l'intégration du paiement (Sprint 6). */
+/** Prestation demandant des arrhes ou un acompte (payé en ligne via Stripe, Sprint 6). */
 export function requiresDeposit(s: Pick<PublicService, "deposit_type" | "deposit_value">): boolean {
   return s.deposit_type !== "none" && s.deposit_value > 0;
 }
 
-export const DEPOSIT_UNAVAILABLE_MESSAGE =
-  "Cette prestation demande un acompte : la réservation en ligne sera possible prochainement. Contactez directement la professionnelle pour la réserver.";
+export type DepositKind = "arrhes" | "acompte";
+export interface PublicPaymentInfo {
+  online: boolean;
+  deposit_kind: DepositKind;
+  deposit_terms: string | null;
+}
 
-export function depositDescription(s: Pick<PublicService, "deposit_type" | "deposit_value">): string | null {
+export const DEPOSIT_UNAVAILABLE_MESSAGE =
+  "Cette prestation demande un paiement à la réservation, qui n'est pas encore activé en ligne. Contactez directement la professionnelle pour la réserver.";
+
+export const DEPOSIT_KIND_LABEL: Record<DepositKind, string> = { arrhes: "Arrhes", acompte: "Acompte" };
+
+/** Texte légal par défaut, affiché avant le paiement si la professionnelle n'en a pas saisi. */
+export function defaultDepositTerms(kind: DepositKind): string {
+  return kind === "arrhes"
+    ? "Somme versée à titre d'arrhes (article L214-1 du Code de la consommation) : si vous renoncez au rendez-vous, les arrhes restent acquises à la professionnelle ; si la professionnelle renonce, elle vous rembourse le double."
+    : "Somme versée à titre d'acompte : elle constitue un premier paiement du prix et vous engage à la prestation, selon les conditions d'annulation ci-dessus.";
+}
+
+export function depositDescription(s: Pick<PublicService, "deposit_type" | "deposit_value">, kind: DepositKind = "arrhes"): string | null {
   if (!requiresDeposit(s)) return null;
-  return s.deposit_type === "percentage" ? `Acompte de ${s.deposit_value} %` : `Acompte de ${formatEuros(s.deposit_value)}`;
+  const label = DEPOSIT_KIND_LABEL[kind];
+  return s.deposit_type === "percentage" ? `${label} de ${s.deposit_value} %` : `${label} de ${formatEuros(s.deposit_value)}`;
+}
+
+/** Montant des arrhes pour un prix de prestation (même formule que la base : hors frais de déplacement). */
+export function depositCentsFor(s: Pick<PublicService, "deposit_type" | "deposit_value">, servicePriceCents: number): number {
+  if (s.deposit_type === "fixed") return Math.min(s.deposit_value, servicePriceCents);
+  if (s.deposit_type === "percentage") return Math.round((servicePriceCents * s.deposit_value) / 100);
+  return 0;
 }
 
 export function priceFor(s: PublicService, place: Place): number | null {

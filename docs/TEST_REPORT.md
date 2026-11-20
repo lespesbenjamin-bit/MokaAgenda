@@ -1,5 +1,33 @@
 # Rapport de tests
 
+## Sprint 6 — Finances et arrhes Stripe (20 novembre 2026)
+
+### Audit préalable du Sprint 5 (sur `main` après fusion de la PR #5)
+- Tests unitaires 162/162, tests de base 161/161, typage et lint sans erreur — **réellement exécutés**.
+- Aucun blocage. Points traités dans ce sprint : prestations avec acompte refusées en ligne (attendu), montant d'acompte calculé hors base, champ « acompte » = montant demandé et non encaissé, pas de statut TVA d'entreprise, CA réalisé dépendant du statut « terminé », `booking_holds` sans lien client/paiement.
+
+### Exécutions (résultats réels)
+| Suite | Résultat |
+|---|---|
+| Unitaires (`npm test`) | **191/191** (+29 : calculs financiers 19, couche Stripe 10, arrhes ; 1 test Sprint 4 et 1 test de navigation mis à jour : comportements volontairement changés) |
+| Base PostgreSQL (`npm run test:db`) | **189/189** (+28 : Sprint 6 27, démo financière 1 ; 1 test Sprint 4 mis à jour : « acompte requis » devient « paiement en ligne non activé ») |
+| HTTP, 3 constructions (`npm run test:e2e:all`) | production **52**, sans configuration **19**, démo **53** (+11 chacune) |
+| Typage, lint, build de production | sans erreur |
+| Contrôle des tests (sabotage) | signature des opérations serveur retirée → 1 échec ; double protection anti-doublon (session déjà payée + réservation déjà convertie) retirée → 1 échec ; un seul niveau retiré : aucun échec (l'autre niveau protège encore, ce qui est voulu). Migration restaurée → 27/27 |
+| Visuel (Playwright, ordinateur + mobile) | tableau de bord financier, paramètres financiers, récapitulatif avec arrhes, liste des prestations avec arrhes ; corrigé : deux libellés de listes tronqués |
+
+### Couverture
+- **Calculs** : réalisé vs prévisionnel vs à clôturer ; TVA 20 % et franchise ; domicile/institut, catégories, prestations, frais de déplacement ; annulations et arrhes conservées ; encaissements (arrhes, soldes, remboursements, frais Stripe, virements, à valider, reste dû) ; charges décaissées vs estimées ; proratisation (jours, fréquences, arrêt, année complète) ; marge, taux, résultat, cotisations sur CA ou bénéfice (jamais négatives), revenu disponible, rentabilité horaire ; répartition des coûts par prestation ; seuil de 5 observations ; fiche cliente ; objectifs et simulation ; périodes.
+- **Base** : permissions (collaboratrice, autre entreprise, visiteur : aucune donnée financière) ; aucune écriture directe dans le registre ; règlement non validé non encaissé ; plafond du reste dû ; idempotence ; immuabilité (modification et suppression refusées même pour le superutilisateur) ; ajustements en insertion seule ; remboursements plafonnés ; opérations serveur non signées/anciennes refusées ; compte non prêt → arrhes impossibles ; compte déjà relié ailleurs refusé ; événement de compte plus ancien ignoré ; montant d'arrhes recalculé par la base (montant envoyé ignoré) ; aucune réservation temporaire hors horaires (essai complet) ; créneau bloqué pendant le paiement ; nouvelle tentative = même réservation ; **paiement réussi** ; **webhook en double** ; **montant incohérent** ; **paiement abandonné** ; **paiement tardif** (créneau repris → remboursement ; créneau libre → confirmé) ; **réservations concurrentes** (2 connexions simultanées → une seule) ; **événements dans le désordre** ; remboursement partiel, depuis le tableau de bord Stripe, retour en arrière impossible ; contestations, virements ; réconciliation ; suivi de la cliente par lien privé.
+- **Couche Stripe (faux client, aucun réseau)** : signature du webhook (absente, fausse, corps modifié) ; confirmation avec frais relus ; email avec lien déchiffré ; doublon ; session non payée (paiement refusé) ignorée ; remboursement automatique avec clé d'idempotence ; erreur → événement en échec et nouvel essai Stripe ; clé `sk_live_` refusée hors production ; chiffrement du lien (mauvaise clé ou altération refusées).
+- **HTTP** : webhook non signé refusé ; réconciliation protégée ; pages finances et export CSV inaccessibles sans connexion ; page de retour de paiement neutre, non indexée, sans confirmation tirée de l'URL.
+
+### Non vérifiable ici (à faire en recette)
+- **Aucun appel réel à Stripe** : l'environnement de développement n'a pas accès à api.stripe.com. Création de compte connecté, page d'inscription Stripe, session Checkout, webhook réel, remboursement réel, frais réels et virements : à vérifier en mode test (`docs/SETUP.md` §4 « Sprint 6 » et §7).
+- Envoi réel des emails (Resend non configuré).
+- Les pages Finances avec les vraies données Supabase (vérifiées ici via l'aperçu avec données fictives et en base PostgreSQL locale).
+- La conformité juridique des textes arrhes/acompte et du délai de rétractation : relecture par un professionnel du droit.
+
 ## Sprint 5 — Déplacements et tournées (20 novembre 2026)
 
 Branche `sprint-5-deplacements`. Seuls les tests réellement exécutés sont indiqués comme réussis.

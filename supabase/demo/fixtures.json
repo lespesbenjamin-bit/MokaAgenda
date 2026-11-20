@@ -1426,5 +1426,61 @@
         }
       ]
     }
-  ]
+  ],
+  "finance": {
+    "settings": {
+      "activity_regime": "micro_bic_services",
+      "vat_status": "franchise",
+      "contribution_rate_bps": 2120,
+      "contribution_base": "revenue",
+      "tax_provision_rate_bps": 170,
+      "tax_provision_base": "revenue",
+      "deposit_kind": "arrhes",
+      "deposit_terms": null
+    },
+    "goals": {
+      "monthly_revenue_cents": 450000,
+      "monthly_disposable_income_cents": 220000,
+      "monthly_appointments": 70,
+      "hourly_margin_cents": 3500
+    },
+    "fixed_expenses": [
+      {
+        "label": "Loyer de l'institut (fictif)",
+        "category": "rent",
+        "amount_cents": 65000,
+        "frequency": "monthly",
+        "months_ago": 14
+      },
+      {
+        "label": "Assurance RC Pro (fictive)",
+        "category": "insurance",
+        "amount_cents": 28000,
+        "frequency": "yearly",
+        "months_ago": 14
+      },
+      {
+        "label": "Logiciel de caisse (fictif)",
+        "category": "software",
+        "amount_cents": 2900,
+        "frequency": "monthly",
+        "months_ago": 8
+      },
+      {
+        "label": "Forfait téléphone (fictif)",
+        "category": "phone",
+        "amount_cents": 1999,
+        "frequency": "monthly",
+        "months_ago": 20
+      },
+      {
+        "label": "Expert-comptable (fictif)",
+        "category": "other",
+        "amount_cents": 30000,
+        "frequency": "quarterly",
+        "months_ago": 6
+      }
+    ],
+    "note": "Données financières entièrement fictives : aucun paiement réel, identifiants Stripe préfixés « demo »."
+  }
 }

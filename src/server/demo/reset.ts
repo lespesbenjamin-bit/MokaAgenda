@@ -2,7 +2,7 @@ import "server-only";
 import { createSupabaseAdminClient } from "@/server/integrations/supabase/admin";
 import { checkDemoTarget } from "./guard";
 import { demoFixtures } from "./fixtures";
-import { DEMO_TABLE_ORDER, buildDemoRows, buildExtraBusinessRows, buildTravelRows, rowsByTable } from "./seed";
+import { DEMO_TABLE_ORDER, buildDemoRows, buildExtraBusinessRows, buildFinanceDemoRows, buildTravelRows, rowsByTable } from "./seed";
 import { enableDemoTravel, geocodeDemoBusiness } from "./travel";
 
 /**
@@ -72,7 +72,8 @@ export async function resetDemo(): Promise<{ businessId: string }> {
   }
 
   // 5. Catalogue et clientes fictives (Sprint 2)
-  const tables = rowsByTable(buildDemoRows(biz.id));
+  const demoRows = buildDemoRows(biz.id);
+  const tables = rowsByTable(demoRows);
   for (const table of DEMO_TABLE_ORDER) {
     if (tables[table].length === 0) continue;
     const { error } = await admin.from(table).insert(tables[table]);
@@ -93,6 +94,17 @@ export async function resetDemo(): Promise<{ businessId: string }> {
     return { located: 0, failed: 0, startLocated: false };
   });
   await enableDemoTravel(admin, biz.id, f.travel.settings, geo.startLocated);
+
+  // 6 bis. Finances fictives (Sprint 6) : aucun paiement réel, aucun appel à Stripe.
+  const fin = buildFinanceDemoRows(demoRows, biz.id);
+  for (const [table, patch] of [["financial_settings", fin.settings], ["financial_goals", fin.goals]] as const) {
+    const { error } = await admin.from(table).update(patch).eq("business_id", biz.id);
+    if (error) throw new Error(`Données démo (${table}) : ${error.message}`);
+  }
+  await insertAll("fixed_expenses", fin.fixed_expenses);
+  await insertAll("payments", fin.payments);
+  await insertAll("refunds", fin.refunds);
+  await insertAll("payouts", fin.payouts);
 
   // 7. Deux autres professionnelles fictives : 100 % domicile et 100 % institut (pages publiques)
   for (const extra of f.extra_businesses) {
