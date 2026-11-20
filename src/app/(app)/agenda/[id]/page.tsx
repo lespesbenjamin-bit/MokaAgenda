@@ -79,7 +79,12 @@ export default async function AppointmentPage({ params, searchParams }: PageProp
         <ArrowLeft className="size-4" /> Agenda
       </Link>
       <PageHeader
-        eyebrow={<Badge variant={STATUS_VARIANT[appt.status]} className="w-fit">{STATUS_LABELS[appt.status]}</Badge>}
+        eyebrow={
+          <div className="flex flex-wrap gap-2">
+            <Badge variant={STATUS_VARIANT[appt.status]} className="w-fit">{STATUS_LABELS[appt.status]}</Badge>
+            {appt.source === "online" && <Badge className="w-fit">Réservé en ligne</Badge>}
+          </div>
+        }
         title={item?.service_name ?? "Rendez-vous"}
         description={`${dateFmt.format(start)} · ${timeFmt.format(start)} – ${timeFmt.format(end)}`}
         actions={
@@ -126,6 +131,13 @@ export default async function AppointmentPage({ params, searchParams }: PageProp
               )}
             </Info>
           </section>
+
+          {appt.customer_comment && (
+            <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+              <h2 className="font-display text-lg font-bold">Message de la cliente</h2>
+              <p className="mt-2 whitespace-pre-line text-sm">{appt.customer_comment}</p>
+            </section>
+          )}
 
           {appt.notes_internal && (
             <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">

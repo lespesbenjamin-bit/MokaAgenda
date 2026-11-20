@@ -1,7 +1,7 @@
 # PROJECT_CONTEXT — Moka Réservation
 
 > Fichier de reprise : à fournir en début de toute nouvelle conversation Claude.
-> Dernière mise à jour : 20 novembre 2026 — Sprint 1 validé en production (parcours inscription → onboarding → tableau de bord testé). Sprint 2 : migration exécutée dans Supabase, PR #2 fusionnée et déployée ; recette manuelle en cours. Sprint 3 : migration exécutée, PR #3 fusionnée et déployée (20/11) ; recette manuelle à faire. Sprint 4 **non commencé** (attente de validation).
+> Dernière mise à jour : 20 novembre 2026 — Sprint 1 validé en production (parcours inscription → onboarding → tableau de bord testé). Sprint 2 : migration exécutée dans Supabase, PR #2 fusionnée et déployée ; recette manuelle en cours. Sprint 3 : PR #3 fusionnée et déployée (20/11). **Sprint 4 (réservation en ligne) développé et testé sur la branche `sprint-4-reservation-en-ligne`** — migration `20261122000001` à exécuter avant fusion. Sprint 5 **non commencé** (attente de validation).
 
 ## Le produit
 
@@ -39,9 +39,12 @@ Blanc `#FFFFFF`, surface `#FAFAFA`, orange vif `#FF6B2C` (accents), orange fort 
 | **Agenda** (jour/semaine/mois, création, modification, glisser-déposer, statuts, historique) | ✅ Sprint 3 — testé (unitaires, PostgreSQL, visuel) — **recette à faire** |
 | **Disponibilités** (plages par jour et par lieu, pauses, congés, fermetures, indisponibilités) | ✅ Sprint 3 — conflits garantis par PostgreSQL |
 | Tableau de bord : indicateurs réels de rendez-vous | ✅ Sprint 3 |
-| Moteur de disponibilités réutilisable (`src/lib/domain/availability.ts`, `freeSlots`) | ✅ prêt pour le Sprint 4 |
-| Écran Paramètres (modification) | « À venir » (reporté) |
-| Réservation en ligne, Stripe, tournées et trajets, finances, boutique | non commencés |
+| Moteur de disponibilités réutilisable (`src/lib/domain/availability.ts`, `freeSlots`) | ✅ utilisé par l'agenda ET la réservation publique |
+| **Réservation en ligne** `/reserver/<slug>` (6 étapes, sans compte, domicile/institut) | ✅ Sprint 4 — testé (unitaires, PostgreSQL, HTTP, visuel) — **SQL à exécuter, recette à faire** |
+| **Lien de gestion** `/reservation/<jeton>` (confirmation, annulation, déplacement) | ✅ Sprint 4 |
+| Emails transactionnels (confirmation, alerte pro, annulation, modification) | ✅ développés — **envoi réel seulement après configuration Resend** ; simulés en démo |
+| Paramètres → Réservation en ligne (activation, adresse, présentation, couverture, règles, partage) | ✅ Sprint 4 (le reste des paramètres reste « À venir ») |
+| Stripe (acomptes), tournées et trajets, finances, boutique | non commencés |
 
 Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée sur https://moka-agenda.vercel.app.
 
@@ -57,13 +60,15 @@ Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée 
 - [ ] Sprint 2 : recette `docs/SETUP.md` §4 « Sprint 2 »
 - [x] Sprint 3 : migration exécutée, PR #3 fusionnée et déployée (20/11)
 - [ ] Sprint 3 : recette manuelle §4 « Sprint 3 » (configurer les horaires d'abord)
+- [ ] Sprint 4 : exécuter `supabase/migrations/20261122000001_sprint4_public_booking.sql`, fusionner la PR, activer la page dans Paramètres, recette §4 « Sprint 4 »
+- [ ] Emails de réservation : compte Resend + domaine vérifié, puis `RESEND_API_KEY` et `EMAIL_FROM` dans Vercel (voir `docs/SETUP.md` §5)
 - [ ] Modèles d'emails personnalisés (reportés volontairement ; en attendant, ouvrir le lien de confirmation dans le même navigateur)
 - [ ] SMTP personnalisé avant ouverture aux clientes
 - [ ] Projets Supabase + Vercel de démonstration
 
 ## Où trouver quoi
 
-- `docs/SETUP.md` — configuration Supabase / Vercel / démo + recette manuelle (Sprint 1 et 2)
+- `docs/SETUP.md` — configuration Supabase / Vercel / démo / emails + recette manuelle (Sprints 1 à 4)
 - `src/lib/domain/` — règles métier pures (tarifs, acomptes, marges, doublons, import CSV, disponibilités, fuseaux, statuts)
 - `docs/ARCHITECTURE.md` — couches, flux d'authentification, design system
 - `docs/DATABASE_SCHEMA.md` — tables, politiques RLS, tables futures
@@ -76,6 +81,10 @@ Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée 
 
 - Un seul agenda par entreprise (V1). Les horaires et conflits sont garantis par PostgreSQL (déclencheurs + contrainte d'exclusion, extension `btree_gist`).
 - Agenda : FullCalendar 6.1 (+ Luxon pour le fuseau de l'entreprise). Ne pas passer à FullCalendar 7 sans revue (API différente).
+- Réservation publique : la cliente (rôle `anon`) n'accède à AUCUNE table ; uniquement aux fonctions `public_*` (security definer, périmètre étroit). Prix et durées relus en base ; disponibilité revérifiée sous verrou. Lien de gestion = jeton aléatoire 256 bits, seule son empreinte SHA-256 est stockée.
+- Prestations avec acompte : visibles mais non réservables en ligne jusqu'au Sprint 6 (Stripe).
+- Emails : fournisseur Resend isolé dans `src/server/notifications/mailer.ts` ; démo = toujours simulé ; sans configuration = non envoyé (statut `skipped` journalisé dans `notifications`).
+- Seuls les rendez-vous pris en ligne déclenchent un email à la cliente quand la professionnelle les annule ou les déplace.
 
 ## Règles de travail convenues
 
@@ -95,5 +104,5 @@ npm run check          # typage + lint + tests unitaires + build
 npm run test:db        # tests SQL/RLS (PostgreSQL local requis)
 npm run test:e2e:all   # build + tests HTTP en production, sans config, et démo
 # Aperçu local des écrans sans base (jamais en production) :
-# MOKA_UI_PREVIEW=1 npm run dev  →  http://localhost:3000/apercu-dev/prestations
+# MOKA_UI_PREVIEW=1 npm run dev  →  http://localhost:3000/apercu-dev/prestations (ou /reserver, /reserver-recap, /rdv-client)
 ```

@@ -143,6 +143,8 @@ export function buildDemoRows(businessId: string, newId: () => string = () => cr
         const price = totalPriceCents(pricing, place);
         const deposit = depositAmountCents(pricing, price);
         const id = newId();
+        // Quelques rendez-vous à venir « pris en ligne » (fictifs) pour illustrer la réservation publique
+        const online = !past && n % 4 === 0 && s.deposit_type === "none";
         appointments.push({
           id,
           business_id: businessId,
@@ -162,6 +164,8 @@ export function buildDemoRows(businessId: string, newId: () => string = () => cr
           deposit_amount_cents: deposit,
           balance_due_cents: price - deposit,
           cancel_reason: status === "cancelled" ? "Annulation fictive (démo)" : null,
+          source: online ? "online" : "manual",
+          customer_comment: online ? "Message fictif laissé lors de la réservation en ligne (démo)." : null,
         });
         appointment_items.push({
           business_id: businessId,

@@ -87,6 +87,21 @@ export function AgendaCalendar({
     api()?.changeView(isDesktop ? VIEW_IDS[view].desktop : VIEW_IDS[view].mobile);
   }, [view, isDesktop]);
 
+  // Synchronisation : les réservations en ligne apparaissent sans recharger la page
+  // (actualisation toutes les 60 s et au retour sur l'onglet).
+  useEffect(() => {
+    if (!range || staticData) return;
+    const refreshNow = () => {
+      if (document.visibilityState === "visible") void load(range.start, range.end);
+    };
+    const timer = window.setInterval(refreshNow, 60_000);
+    document.addEventListener("visibilitychange", refreshNow);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshNow);
+    };
+  }, [range, load, staticData]);
+
   const onDatesSet = (arg: DatesSetArg) => {
     setTitle(arg.view.title);
     if (range && range.start === arg.startStr && range.end === arg.endStr) return;

@@ -46,7 +46,6 @@ export const navigation: NavItem[] = [
     summary: "Vos rendez-vous à domicile et en institut, au même endroit.",
     planned: [
       "Vue jour, semaine et mois",
-      "Réservation en ligne avec confirmation automatique",
       "Prévention des conflits de créneaux",
       "Acompte optionnel par prestation",
     ],
@@ -115,8 +114,8 @@ export const navigation: NavItem[] = [
     label: "Paramètres",
     href: "/parametres",
     icon: Settings,
-    status: "coming_soon",
-    summary: "Votre entreprise, vos adresses et vos préférences.",
+    status: "available",
+    summary: "Votre page de réservation en ligne et ses règles.",
     planned: [
       "Informations de l'entreprise et logo",
       "Mode d'activité et adresses",

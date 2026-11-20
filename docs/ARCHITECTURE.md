@@ -38,6 +38,8 @@
 | Prestations | `/prestations`, `/prestations/nouvelle`, `/prestations/[id]`, `/prestations/categories` | `server/actions/catalog.ts` | `server/repositories/catalog.ts` |
 | Clientes | `/clientes`, `/clientes/nouvelle`, `/clientes/[id]?onglet=…`, `/clientes/import` | `server/actions/customers.ts`, `customer-import.ts` | `server/repositories/customers.ts` |
 | Agenda (Sprint 3) | `/agenda`, `/agenda/nouveau`, `/agenda/[id]`, `/agenda/disponibilites` | `server/actions/agenda.ts` | `server/repositories/agenda.ts`, `server/services/agenda.ts` |
+| Réservation en ligne (Sprint 4, public) | `/reserver/[slug]`, `/reservation/[token]` | `server/actions/public-booking.ts` | `server/services/public-booking.ts` (client **anonyme** `integrations/supabase/public.ts`, fonctions `public_*` uniquement) |
+| Paramètres → réservation (Sprint 4) | `/parametres` | `server/actions/booking-settings.ts` | `server/repositories/business.ts` |
 | Services réservation | — | — | `server/services/booking-catalog.ts` (prestations réservables, devis figé, recherche de cliente, adresse d'intervention) |
 
 **Calculs** : tous les montants sont en centimes, saisis TTC. La marge indicative = prix HT − consommables − autres coûts directs, **avant déplacement, cotisations et charges fixes** ; elle n'est jamais présentée comme un bénéfice.
@@ -50,11 +52,33 @@
 
 Une seule logique, deux exécutions :
 - **PostgreSQL** (garantie finale) : déclencheur `appointment_check_availability` + contrainte d'exclusion + verrou transactionnel par entreprise.
-- **`src/lib/domain/availability.ts`** (mêmes règles, testées sur les mêmes scénarios) : messages clairs, créneaux proposés quand un horaire est refusé, et `freeSlots()` qui servira à la réservation en ligne du Sprint 4.
+- **`src/lib/domain/availability.ts`** (mêmes règles, testées sur les mêmes scénarios) : messages clairs, créneaux proposés quand un horaire est refusé, et `freeSlots()`, réutilisé tel quel par la réservation en ligne (Sprint 4).
 
 Fuseaux : `src/lib/domain/time.ts` (API Intl, sans dépendance) ; l'agenda (FullCalendar 6 + plugin Luxon) s'affiche dans le fuseau de l'entreprise, quel que soit celui de l'appareil.
 
 **Agenda** : FullCalendar 6.1 (`@fullcalendar/*`, maintenu, compatible React 19). Vues jour / semaine / mois ; sur mobile, la semaine s'affiche en liste. Glisser-déposer et redimensionnement sur ordinateur ; sur mobile et au clavier, déplacement par le formulaire « Modifier ou déplacer ».
+
+## Réservation en ligne (Sprint 4)
+
+```
+Navigateur (cliente, sans compte)
+  └─ Server Actions publiques ── limitation de débit par IP (mémoire, meilleur effort)
+       │                         validation Zod + piège anti-robots + délai minimal
+       └─ client Supabase ANONYME (clé publique, sans session)
+            └─ fonctions public_* (security definer, périmètre étroit) ── aucune table accessible
+                 ├─ public_booking_page     : infos publiques + prestations réservables
+                 ├─ public_availability     : plages, blocages (sans motif), temps occupés (sans détail)
+                 ├─ public_create_booking   : revalidation complète, prix relus, verrou, fiche cliente, emails en file
+                 ├─ public_get_booking / public_cancel_booking / public_reschedule_booking (lien secret)
+                 └─ public_record_notification : résultat d'envoi
+```
+
+- **Créneaux** : `publicSlots()` (`lib/domain/public-booking.ts`) appelle `freeSlots()`, le moteur de l'agenda, sur les données de `public_availability`. Le navigateur ne reçoit que des heures libres ; il n'est jamais une preuve de disponibilité : la base refait tout (déclencheurs Sprint 3 + contrainte d'exclusion + verrou).
+- **Lien de gestion** : jeton aléatoire de 32 octets (`server/security/tokens.ts`) ; la base ne stocke que son empreinte SHA-256. Pages `/reservation/*` : `Referrer-Policy: no-referrer`, `noindex`, `no-store`.
+- **Doubles soumissions** : clé d'idempotence générée à l'affichage du formulaire, unique par entreprise.
+- **Emails** : `server/notifications/templates.ts` (gabarits purs, valeurs échappées) + `mailer.ts` (Resend / simulé en démo / désactivé). La base crée les lignes `notifications` ; le serveur envoie puis enregistre le résultat. Une panne d'email n'annule jamais la réservation. Rappels : colonne `scheduled_for` prévue.
+- **Actions de la professionnelle** : annuler ou déplacer un rendez-vous **pris en ligne** prévient la cliente (`server/services/pro-notifications.ts`, via la RLS).
+- **Agenda** : actualisation automatique toutes les 60 s et au retour sur l'onglet.
 
 ## Choix techniques
 

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireBusinessContext } from "@/server/services/business-context";
 import { createSupabaseServerClient } from "@/server/integrations/supabase/server";
 import { buildItemSnapshot, precheckSlot } from "@/server/services/agenda";
+import { notifyCustomerOfProChange } from "@/server/services/pro-notifications";
 import {
   createAppointmentRpc,
   deleteException,
@@ -51,6 +52,17 @@ async function context() {
   return { ctx, supabase, businessId: ctx.business.id, timeZone: ctx.settings?.timezone ?? "Europe/Paris" };
 }
 
+type Ctx = Awaited<ReturnType<typeof context>>;
+
+/** Rendez-vous pris en ligne déplacé par la professionnelle : la cliente est prévenue. */
+async function notifyIfMoved(c: Ctx, id: string, previousStart: string | null | undefined) {
+  if (!previousStart) return;
+  const after = await getAppointment(c.supabase, c.businessId, id);
+  if (after && after.starts_at !== previousStart && new Date(after.starts_at).getTime() !== new Date(previousStart).getTime()) {
+    await notifyCustomerOfProChange(c.supabase, c.ctx, id, "booking_rescheduled_customer", new Date(previousStart));
+  }
+}
+
 function refresh(id?: string) {
   revalidatePath("/agenda", "layout");
   revalidatePath("/tableau-de-bord");
@@ -63,7 +75,9 @@ async function saveAppointment(formData: FormData, id: string | null): Promise<A
   const parsed = parseAppointmentForm(form, { requireCustomer: !id });
   if (!parsed.ok) return withValues({ fieldErrors: parsed.errors, error: "Certains champs sont à corriger." }, formData);
   const p = parsed.data;
-  const { supabase, businessId, timeZone } = await context();
+  const c = await context();
+  const { supabase, businessId, timeZone } = c;
+  let previousStart: string | null = null;
 
   let newId: string | null = null;
   try {
@@ -93,6 +107,7 @@ async function saveAppointment(formData: FormData, id: string | null): Promise<A
     };
 
     if (id) {
+      previousStart = (await getAppointment(supabase, businessId, id))?.starts_at ?? null;
       await updateAppointmentRpc(supabase, id, fields);
     } else {
       let customerId: string;
@@ -115,6 +130,7 @@ async function saveAppointment(formData: FormData, id: string | null): Promise<A
     console.error("[agenda] enregistrement", error);
     return withValues({ error: translateAppointmentError(error instanceof Error ? error.message : undefined) }, formData);
   }
+  if (id) await notifyIfMoved(c, id, previousStart);
   refresh(id ?? newId ?? undefined);
   redirect(`/agenda/${id ?? newId}?${id ? "modifie" : "cree"}=1`);
 }
@@ -135,10 +151,13 @@ export async function rescheduleAction(id: string, startIso: string, durationMin
   if (durationMinutes !== undefined && (!Number.isInteger(durationMinutes) || durationMinutes < 5 || durationMinutes > 720)) {
     return { ok: false, error: "Durée invalide." };
   }
-  const { supabase, businessId, timeZone } = await context();
+  const c = await context();
+  const { supabase, businessId, timeZone } = c;
+  let previousStart: string | null = null;
   try {
     const appt = await getAppointment(supabase, businessId, id);
     if (!appt) return { ok: false, error: "Rendez-vous introuvable." };
+    previousStart = appt.starts_at;
     const startsAt = new Date(startIso);
     const check = await precheckSlot(
       supabase,
@@ -160,6 +179,7 @@ export async function rescheduleAction(id: string, startIso: string, durationMin
     console.error("[agenda] déplacement", error);
     return { ok: false, error: translateAppointmentError(error instanceof Error ? error.message : undefined) };
   }
+  await notifyIfMoved(c, id, previousStart);
   refresh(id);
   return { ok: true };
 }
@@ -169,15 +189,24 @@ export async function changeStatusAction(_prev: FormState, formData: FormData): 
   const status = String(formData.get("status") ?? "") as AppointmentStatus;
   const reason = String(formData.get("cancel_reason") ?? "").trim().slice(0, 500) || null;
   if (!UUID.test(id) || !["confirmed", "completed", "cancelled", "no_show"].includes(status)) return { error: "Action invalide." };
-  const { supabase, businessId } = await context();
+  const c = await context();
+  const { supabase, businessId } = c;
   try {
     await setAppointmentStatus(supabase, businessId, id, status, reason);
   } catch (error) {
     console.error("[agenda] statut", error);
     return { error: translateAppointmentError(error instanceof Error ? error.message : undefined) };
   }
+  let notice = "";
+  if (status === "cancelled") {
+    const sent = await notifyCustomerOfProChange(supabase, c.ctx, id, "booking_cancelled_customer");
+    if (sent === "sent") notice = " La cliente a été prévenue par email.";
+    else if (sent === "simulated") notice = " Email à la cliente simulé (démonstration).";
+    else if (sent === "failed") notice = " L'email à la cliente n'a pas pu être envoyé : prévenez-la directement.";
+    else if (sent === "skipped") notice = " Emails non configurés : prévenez la cliente directement.";
+  }
   refresh(id);
-  return { success: "Statut mis à jour." };
+  return { success: `Statut mis à jour.${notice}` };
 }
 
 // ─── Données du calendrier ──────────────────────────────────────────

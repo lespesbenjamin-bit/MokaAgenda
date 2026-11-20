@@ -86,7 +86,8 @@ export function checkSlot(req: SlotRequest, ctx: AvailabilityContext): { ok: tru
   const { start, end } = occupiedRange(req);
   if (!fitsWorkingHours(start, end, req.place, ctx)) return { ok: false, reason: "outside_hours" };
   if (ctx.blocks.some((b) => (b.place === null || b.place === req.place) && overlaps(start, end, b.start, b.end))) return { ok: false, reason: "blocked" };
-  if (ctx.busy.some((b) => b.id !== ctx.ignoreId && overlaps(start, end, b.start, b.end))) return { ok: false, reason: "conflict" };
+  // Les périodes sans identifiant (réservation publique) ne sont jamais ignorées.
+  if (ctx.busy.some((b) => (ctx.ignoreId === undefined || b.id !== ctx.ignoreId) && overlaps(start, end, b.start, b.end))) return { ok: false, reason: "conflict" };
   return { ok: true };
 }
 

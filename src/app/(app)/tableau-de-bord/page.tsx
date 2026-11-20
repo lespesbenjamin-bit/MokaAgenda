@@ -38,6 +38,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/tablea
     },
     { label: "Paramètres de l'agenda", done: Boolean(settings) },
     { label: "Horaires de travail", done: agenda.hasRules },
+    { label: "Page de réservation en ligne activée", done: Boolean(settings?.booking_enabled), optional: true },
     { label: "Logo", done: Boolean(business.logo_path), optional: true },
     { label: "Conditions générales de réservation", done: Boolean(settings?.booking_terms), optional: true },
   ];
@@ -68,6 +69,24 @@ export default async function DashboardPage({ searchParams }: PageProps<"/tablea
       {params.bienvenue === "1" && (
         <div className="mb-6">
           <FormAlert type="success">Votre espace est prêt. Bienvenue sur Moka Réservation !</FormAlert>
+        </div>
+      )}
+      {settings?.booking_enabled ? (
+        <div className="mb-6">
+          <FormAlert type="info">
+            Votre page de réservation est en ligne :{" "}
+            <Link href={`/reserver/${business.slug}`} className="font-semibold underline underline-offset-2" target="_blank">
+              /reserver/{business.slug}
+            </Link>{" "}
+            · <Link href="/parametres" className="underline underline-offset-2">Réglages et partage</Link>
+          </FormAlert>
+        </div>
+      ) : (
+        <div className="mb-6">
+          <FormAlert type="info">
+            Réservation en ligne : votre page est prête mais désactivée.{" "}
+            <Link href="/parametres" className="font-semibold underline underline-offset-2">L&apos;activer dans Paramètres</Link>
+          </FormAlert>
         </div>
       )}
       {params.motdepasse === "1" && (

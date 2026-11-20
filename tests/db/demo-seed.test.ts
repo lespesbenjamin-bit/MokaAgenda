@@ -101,3 +101,69 @@ describe("agenda de démonstration", () => {
     expect((await db.query("select status from public.appointments where id = $1", [next.id])).rows[0].status).toBe("cancelled");
   });
 });
+
+describe("réservation en ligne de démonstration", () => {
+  it("la page publique fictive est ouverte et ne montre que les prestations réservables", async () => {
+    const { demoFixtures: f } = await import("@/server/demo/fixtures");
+    await as(
+      db,
+      owner,
+      async () => {
+        await db.query("update public.businesses set slug = $2 where id = $1", [biz, f.business.slug]);
+        const s = f.settings as Record<string, unknown>;
+        const cols = Object.keys(s).filter((k) => k !== "timezone" && k !== "default_appointment_minutes" && k !== "service_radius_km");
+        await db.query(
+          `update public.business_settings set ${cols.map((c, i) => `${c} = $${i + 2}`).join(", ")} where business_id = $1`,
+          [biz, ...cols.map((c) => s[c])],
+        );
+      },
+      { commit: true },
+    );
+    const page = (await as(db, null, () => db.query("select public.public_booking_page($1) as p", [f.business.slug]))).rows[0].p;
+    expect(page.business.name).toBe("Moka Beauty Studio");
+    expect(page.has_hours).toBe(true);
+    expect(page.services.length).toBe(f.services.filter((s) => s.online_bookable).length);
+  });
+
+  it("les rendez-vous « pris en ligne » fictifs n'exigent aucun acompte", async () => {
+    const { rows } = await db.query("select deposit_amount_cents from public.appointments where business_id = $1 and source = 'online'", [biz]);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((r) => r.deposit_amount_cents === 0)).toBe(true);
+  });
+
+  it("une réservation test sans compte arrive dans l'agenda de démonstration", async () => {
+    const { demoFixtures: f } = await import("@/server/demo/fixtures");
+    const page = (await as(db, null, () => db.query("select public.public_booking_page($1) as p", [f.business.slug]))).rows[0].p;
+    const service = page.services.find((s: { deposit_type: string; places: { place: string }[] }) => s.deposit_type === "none" && s.places.some((p) => p.place === "salon"));
+    // Cherche un créneau libre avec le moteur public, comme le ferait la page
+    const { toAvailabilityContext, publicSlots } = await import("@/lib/domain/public-booking");
+    const { addDays, localDate, zonedToUtc } = await import("@/lib/domain/time");
+    const tz = page.settings.timezone;
+    const today = localDate(new Date(), tz);
+    let slot: Date | undefined;
+    for (let d = 1; d < 20 && !slot; d++) {
+      const day = addDays(today, d);
+      const raw = (await as(db, null, () => db.query("select public.public_availability($1, $2, $3) as a", [f.business.slug, zonedToUtc(addDays(day, -1), 0, tz), zonedToUtc(addDays(day, 2), 0, tz)]))).rows[0].a;
+      slot = publicSlots(day, service, "salon", toAvailabilityContext(raw, tz), { now: new Date(), windowDays: 60, stepMinutes: 15 })[0];
+    }
+    expect(slot).toBeDefined();
+    const { randomUUID, createHash } = await import("node:crypto");
+    const res = (
+      await as(
+        db,
+        null,
+        () =>
+          db.query("select public.public_create_booking($1) as r", [
+            JSON.stringify({
+              slug: f.business.slug, service_id: service.id, place: "salon", starts_at: slot!.toISOString(),
+              first_name: "Cliente", last_name: "Test", email: "cliente.test@exemple.demo", phone: "06 00 00 00 01",
+              accept_terms: true, idempotency_key: randomUUID(), token_hash: createHash("sha256").update(randomUUID()).digest("hex"),
+            }),
+          ]),
+        { commit: true },
+      )
+    ).rows[0].r;
+    const visible = await as(db, owner, () => db.query("select source, status from public.appointments where id = $1", [res.appointment_id]));
+    expect(visible.rows[0]).toEqual({ source: "online", status: "confirmed" });
+  });
+});
