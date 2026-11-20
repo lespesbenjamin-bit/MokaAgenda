@@ -37,13 +37,24 @@
 |---|---|---|---|
 | Prestations | `/prestations`, `/prestations/nouvelle`, `/prestations/[id]`, `/prestations/categories` | `server/actions/catalog.ts` | `server/repositories/catalog.ts` |
 | Clientes | `/clientes`, `/clientes/nouvelle`, `/clientes/[id]?onglet=…`, `/clientes/import` | `server/actions/customers.ts`, `customer-import.ts` | `server/repositories/customers.ts` |
-| Préparation agenda | — | — | `server/services/booking-catalog.ts` (prestations réservables, devis figé, recherche de cliente, adresse d'intervention) |
+| Agenda (Sprint 3) | `/agenda`, `/agenda/nouveau`, `/agenda/[id]`, `/agenda/disponibilites` | `server/actions/agenda.ts` | `server/repositories/agenda.ts`, `server/services/agenda.ts` |
+| Services réservation | — | — | `server/services/booking-catalog.ts` (prestations réservables, devis figé, recherche de cliente, adresse d'intervention) |
 
 **Calculs** : tous les montants sont en centimes, saisis TTC. La marge indicative = prix HT − consommables − autres coûts directs, **avant déplacement, cotisations et charges fixes** ; elle n'est jamais présentée comme un bénéfice.
 
 **Import CSV** : lecture et correspondance des colonnes dans le navigateur ; vérification, détection des doublons et création **refaites côté serveur**. Aucune fiche existante n'est modifiée ; chaque ligne porte une clé d'import unique (relancer le même fichier ne crée pas de doublon).
 
 **Aperçu local** : `/apercu-dev/[ecran]` affiche les écrans avec les données démo, sans base. Actif seulement hors production et avec `MOKA_UI_PREVIEW=1` (404 sinon, testé).
+
+## Moteur de disponibilités (Sprint 3)
+
+Une seule logique, deux exécutions :
+- **PostgreSQL** (garantie finale) : déclencheur `appointment_check_availability` + contrainte d'exclusion + verrou transactionnel par entreprise.
+- **`src/lib/domain/availability.ts`** (mêmes règles, testées sur les mêmes scénarios) : messages clairs, créneaux proposés quand un horaire est refusé, et `freeSlots()` qui servira à la réservation en ligne du Sprint 4.
+
+Fuseaux : `src/lib/domain/time.ts` (API Intl, sans dépendance) ; l'agenda (FullCalendar 6 + plugin Luxon) s'affiche dans le fuseau de l'entreprise, quel que soit celui de l'appareil.
+
+**Agenda** : FullCalendar 6.1 (`@fullcalendar/*`, maintenu, compatible React 19). Vues jour / semaine / mois ; sur mobile, la semaine s'affiche en liste. Glisser-déposer et redimensionnement sur ordinateur ; sur mobile et au clavier, déplacement par le formulaire « Modifier ou déplacer ».
 
 ## Choix techniques
 

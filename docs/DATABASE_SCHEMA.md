@@ -76,10 +76,38 @@ Le rôle `anon` (visiteur non connecté) n'a aucun droit sur ces tables.
 | Catalogue (catégories, prestations, tarifs, coûts, photos) | membres | propriétaire |
 | Clientes, adresses, consentements | membres | propriétaire + staff |
 
-## Instantanés financiers des futurs rendez-vous
+## Sprint 3 — agenda (migration `20261121000001_sprint3_agenda.sql`)
 
-Préparés côté code (`AppointmentPriceSnapshot` dans `src/lib/domain/pricing.ts`) : prestation, lieu, durées, prix TTC/HT, TVA, supplément, acompte, solde, coûts directs, date. Ils seront enregistrés dans `appointments` au Sprint 3 pour qu'un changement de tarif ne modifie pas l'historique.
+Extension : `btree_gist` (schéma `extensions`), pour les contraintes d'exclusion.
+
+| Table | Rôle | Points clés |
+|---|---|---|
+| `availability_rules` | plages de travail hebdomadaires | jour ISO 1–7, minutes de début/fin, `place` (null = domicile et institut) ; **aucun chevauchement** le même jour (exclusion) ; une pause = intervalle entre deux plages |
+| `availability_exceptions` | congés, fermetures, indisponibilités | `kind`, période `starts_at`/`ends_at` (≤ 1 an), `place` facultatif |
+| `appointments` | rendez-vous | cliente (FK composite), lieu, statut, début, durées (prestation, préparation, nettoyage, tampon), `ends_at` et `occupied` calculés, adresse figée (obligatoire à domicile), montants figés (total, acompte, solde), notes, annulation ; **aucun chevauchement entre rendez-vous actifs** (exclusion sur `occupied`) |
+| `appointment_items` | prestations du rendez-vous : **instantané** | nom, durée, prix catalogue et prix appliqué (`price_overridden`), TVA, HT, acompte, coûts (consommables, produits, autres) ; lien vers la prestation conservé même archivée |
+| `booking_events` | historique | `created`, `updated`, `rescheduled`, `status_changed`, `cancelled` ; écrit **uniquement par la base** (déclencheur), lecture seule |
+| `appointment_travel` | préparée (Sprint 5) | distance, durée, frais : renseignés seulement avec `computed_at` (aucune valeur inventée) |
+| `booking_holds` | préparée (Sprint 4) | blocage temporaire d'un créneau pendant le paiement ; aucune politique → serveur uniquement |
+
+**Garanties PostgreSQL (déclencheurs sur `appointments`)**
+
+1. `10_compute` : `ends_at` = début + durée ; `occupied` = [début − préparation, fin + nettoyage + tampon[.
+2. `20_status` : transitions autorisées — en attente → confirmé | annulé ; confirmé → terminé | annulé | absente ; terminé / annulé / absente définitifs (horaires figés) ; « terminé » et « absente » seulement après le début.
+3. `30_availability` (rendez-vous actifs) : dans le **fuseau horaire de l'entreprise**, le temps bloqué doit tenir entièrement dans **une** plage du bon jour compatible avec le lieu (refuse pause, dépassement, jour fermé, mauvais lieu) et ne toucher aucun blocage.
+4. `appointments_no_overlap` : contrainte d'exclusion entre rendez-vous actifs.
+5. `appointments_log` : historique automatique.
+
+**Fonctions** : `create_appointment(p jsonb)`, `update_appointment(id, p jsonb)` (atomiques, soumises à la RLS, verrou transactionnel par entreprise `private.lock_schedule` contre les réservations simultanées), `replace_availability_rules(business, rules)` (tout ou rien).
+
+**Droits Sprint 3** : horaires et blocages — lecture membres, écriture propriétaire ; rendez-vous et prestations du rendez-vous — lecture membres, écriture propriétaire + staff, **aucune suppression** (annulation) ; historique — lecture seule.
+
+**Hypothèse V1** : un seul agenda par entreprise. L'agenda par employée ajoutera une colonne (ex. `staff_id`) à la contrainte d'exclusion.
+
+## Instantanés financiers
+
+`appointment_items` est l'instantané figé (prix, TVA, HT, acompte, coûts directs) : base des analyses du Sprint 6. Un changement de tarif du catalogue ne modifie jamais un rendez-vous existant (testé).
 
 ## Tables futures (non créées)
 
-`appointments` (dont `status` `appointment_status`, instantané financier, `deposit_amount_cents`, `balance_due_cents`, `payment_status`), `payments`, `booking_holds` (réservation temporaire anti-conflit), `transport_profiles`, `financial_settings`. Chacune portera `business_id`, des clés composites vers les tables existantes et les mêmes politiques.
+`payments`, `transport_profiles`, `financial_settings`. Chacune portera `business_id`, des clés composites vers les tables existantes et les mêmes politiques.

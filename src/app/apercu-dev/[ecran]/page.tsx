@@ -11,6 +11,12 @@ import { AddressesManager, ConsentsForm, CustomerIdentityForm } from "@/componen
 import { ImportWizard } from "@/components/customers/import-wizard";
 import { buildDemoRows } from "@/server/demo/seed";
 import { appEnv } from "@/lib/env";
+import { AgendaCalendar } from "@/components/agenda/agenda-calendar";
+import { AppointmentForm } from "@/components/agenda/appointment-form";
+import { ExceptionsManager, WeeklyHoursEditor } from "@/components/agenda/availability-editor";
+import type { CalendarBackground, CalendarEvent } from "@/server/actions/agenda";
+import { addDays, isoWeekdayOf, localDate, zonedToUtc } from "@/lib/domain/time";
+import { offeredPlaces, totalPriceCents } from "@/lib/domain/pricing";
 
 /**
  * Aperçu visuel des écrans avec les données démo, SANS base de données.
@@ -66,7 +72,69 @@ export default async function PreviewPage({ params }: { params: Promise<{ ecran:
     updated_at: new Date(Date.UTC(2026, 10, 1 + i)).toISOString(),
   }));
 
+  // ─── Agenda (données démo générées pour aujourd'hui) ───
+  const TZ = "Europe/Paris";
+  const now = new Date();
+  const nameOf = new Map(rows.customers.map((c) => [c.id as string, `${c.first_name} ${c.last_name}`]));
+  const calEvents: CalendarEvent[] = rows.appointments.map((a) => {
+    const item = rows.appointment_items.find((i) => i.appointment_id === a.id)!;
+    const start = new Date(a.starts_at as string);
+    return {
+      id: a.id as string,
+      title: item.service_name as string,
+      start: start.toISOString(),
+      end: new Date(start.getTime() + (a.duration_minutes as number) * 60_000).toISOString(),
+      status: a.status as CalendarEvent["status"],
+      place: a.place as CalendarEvent["place"],
+      customer: nameOf.get(a.customer_id as string) ?? "Cliente",
+      city: a.city as string | null,
+    };
+  });
+  const calBackgrounds: CalendarBackground[] = [];
+  for (let d = -21; d <= 35; d++) {
+    const day = addDays(localDate(now, TZ), d);
+    for (const r of rows.availability_rules.filter((x) => x.weekday === isoWeekdayOf(day))) {
+      calBackgrounds.push({
+        start: zonedToUtc(day, r.start_minute as number, TZ).toISOString(),
+        end: zonedToUtc(day, r.end_minute as number, TZ).toISOString(),
+        kind: r.place === "home" ? "hours-home" : r.place === "salon" ? "hours-salon" : "hours-any",
+      });
+    }
+  }
+  for (const e of rows.availability_exceptions) calBackgrounds.push({ start: e.starts_at as string, end: e.ends_at as string, kind: "blocked", label: e.label as string });
+  const bookable = services.map((s) => {
+    const prices: Record<string, number> = {};
+    for (const p of offeredPlaces(s.pricing)) prices[p] = totalPriceCents(s.pricing, p);
+    return { id: s.id, name: s.name, category: cats.find((c) => c.id === s.categoryId)?.name ?? null, durationMinutes: s.durationMinutes, mobilizedMinutes: s.durationMinutes + s.prepMinutes + s.cleanupMinutes, prices };
+  });
+
   const screens: Record<string, React.ReactNode> = {
+    agenda: (
+      <>
+        <PageHeader title="Agenda" description="Aperçu avec les rendez-vous démo." />
+        <AgendaCalendar timeZone={TZ} hasRules staticData={{ events: calEvents, backgrounds: calBackgrounds }} />
+      </>
+    ),
+    "agenda-nouveau": (
+      <>
+        <PageHeader title="Nouveau rendez-vous" />
+        <AppointmentForm
+          services={bookable}
+          customers={customers.map((c) => ({ id: c.id, name: `${c.first_name} ${c.last_name}`, phone: c.phone, email: c.email }))}
+          allowedPlaces={["salon", "home"]}
+          defaults={{ customerId: "", serviceId: "", place: "", date: localDate(now, TZ), time: "10:00", duration: "", price: "", addressId: "", addressLine1: "", addressLine2: "", postalCode: "", city: "", notes: "" }}
+        />
+      </>
+    ),
+    horaires: (
+      <>
+        <PageHeader title="Horaires et disponibilités" />
+        <div className="flex flex-col gap-6">
+          <WeeklyHoursEditor hybrid canEdit initial={rows.availability_rules.map((r) => ({ weekday: r.weekday as number, startMinute: r.start_minute as number, endMinute: r.end_minute as number, place: r.place as "home" | "salon" | null }))} />
+          <ExceptionsManager hybrid canEdit today={localDate(now, TZ)} items={[{ id: "e1", kind: "vacation", label: "Congés (fictif)", period: "Du 8 déc. 2026 au 10 déc. 2026", place: null }]} />
+        </div>
+      </>
+    ),
     prestations: (
       <>
         <PageHeader title="Prestations" description="Aperçu avec les données démo." />

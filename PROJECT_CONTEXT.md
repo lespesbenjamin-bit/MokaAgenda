@@ -36,9 +36,12 @@ Blanc `#FFFFFF`, surface `#FAFAFA`, orange vif `#FF6B2C` (accents), orange fort 
 | **Prestations** (catégories, formulaire complet, liste, duplication, archivage, marge indicative) | ✅ Sprint 2 — testé (unitaires, PostgreSQL, visuel) — **recette à faire** |
 | **Clientes** (fiche à onglets, adresses, préférences, consentements, doublons, import CSV) | ✅ Sprint 2 — idem |
 | Démo v2 (6 catégories, 20 prestations, 25 clientes) | ✅ données testées en base — projet démo à créer |
-| Services pour l'agenda (`server/services/booking-catalog.ts`) | ✅ préparés |
+| **Agenda** (jour/semaine/mois, création, modification, glisser-déposer, statuts, historique) | ✅ Sprint 3 — testé (unitaires, PostgreSQL, visuel) — **recette à faire** |
+| **Disponibilités** (plages par jour et par lieu, pauses, congés, fermetures, indisponibilités) | ✅ Sprint 3 — conflits garantis par PostgreSQL |
+| Tableau de bord : indicateurs réels de rendez-vous | ✅ Sprint 3 |
+| Moteur de disponibilités réutilisable (`src/lib/domain/availability.ts`, `freeSlots`) | ✅ prêt pour le Sprint 4 |
 | Écran Paramètres (modification) | « À venir » (reporté) |
-| Agenda, réservation en ligne, Stripe, tournées, finances, boutique | non commencés |
+| Réservation en ligne, Stripe, tournées et trajets, finances, boutique | non commencés |
 
 Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée sur https://moka-agenda.vercel.app.
 
@@ -52,6 +55,7 @@ Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée 
 - [x] Parcours Sprint 1 complet validé en production (20/11)
 - [x] Sprint 2 : migration exécutée, PR #2 fusionnée et déployée (20/11)
 - [ ] Sprint 2 : recette `docs/SETUP.md` §4 « Sprint 2 »
+- [ ] Sprint 3 : exécuter `supabase/migrations/20261121000001_sprint3_agenda.sql`, fusionner la PR, recette §4 « Sprint 3 »
 - [ ] Modèles d'emails personnalisés (reportés volontairement ; en attendant, ouvrir le lien de confirmation dans le même navigateur)
 - [ ] SMTP personnalisé avant ouverture aux clientes
 - [ ] Projets Supabase + Vercel de démonstration
@@ -59,13 +63,18 @@ Branche `sprint-1-5-fiabilisation` fusionnée dans `main` (PR #1) et déployée 
 ## Où trouver quoi
 
 - `docs/SETUP.md` — configuration Supabase / Vercel / démo + recette manuelle (Sprint 1 et 2)
-- `src/lib/domain/` — règles métier pures (tarifs, acomptes, marges, doublons, import CSV)
+- `src/lib/domain/` — règles métier pures (tarifs, acomptes, marges, doublons, import CSV, disponibilités, fuseaux, statuts)
 - `docs/ARCHITECTURE.md` — couches, flux d'authentification, design system
 - `docs/DATABASE_SCHEMA.md` — tables, politiques RLS, tables futures
 - `docs/TEST_REPORT.md` — tests exécutés et résultats
 - `docs/ROADMAP.md` — suite du projet
 - `supabase/migrations/` — SQL (à exécuter dans l'ordre)
 - `supabase/demo/fixtures.json` — données fictives de la démo
+
+## Hypothèses techniques
+
+- Un seul agenda par entreprise (V1). Les horaires et conflits sont garantis par PostgreSQL (déclencheurs + contrainte d'exclusion, extension `btree_gist`).
+- Agenda : FullCalendar 6.1 (+ Luxon pour le fuseau de l'entreprise). Ne pas passer à FullCalendar 7 sans revue (API différente).
 
 ## Règles de travail convenues
 

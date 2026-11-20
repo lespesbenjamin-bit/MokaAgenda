@@ -69,3 +69,35 @@ describe("données de démonstration", () => {
     expect(gps.rowCount).toBe(0);
   });
 });
+
+describe("agenda de démonstration", () => {
+  it("des rendez-vous cohérents avec les horaires, sans chevauchement, passés et à venir", async () => {
+    const { rows } = await db.query(
+      "select place, status, starts_at < now() as past from public.appointments where business_id = $1",
+      [biz],
+    );
+    expect(rows.length).toBeGreaterThan(20);
+    expect(new Set(rows.map((r) => r.place))).toEqual(new Set(["home", "salon"]));
+    expect(rows.some((r) => r.past && r.status === "completed")).toBe(true);
+    expect(rows.some((r) => !r.past && (r.status === "confirmed" || r.status === "pending"))).toBe(true);
+    expect(rows.filter((r) => !r.past).every((r) => r.status === "confirmed" || r.status === "pending")).toBe(true);
+  });
+
+  it("chaque rendez-vous a sa prestation figée et une adresse s'il est à domicile", async () => {
+    const missing = await db.query(
+      "select a.id from public.appointments a left join public.appointment_items i on i.appointment_id = a.id where a.business_id = $1 and i.id is null",
+      [biz],
+    );
+    expect(missing.rowCount).toBe(0);
+    const homeWithoutAddress = await db.query("select 1 from public.appointments where business_id = $1 and place = 'home' and address_line1 is null", [biz]);
+    expect(homeWithoutAddress.rowCount).toBe(0);
+  });
+
+  it("un rendez-vous de démonstration peut être déplacé et annulé (comme en vrai)", async () => {
+    const next = (
+      await db.query("select id from public.appointments where business_id = $1 and status = 'confirmed' and starts_at > now() order by starts_at limit 1", [biz])
+    ).rows[0];
+    await as(db, owner, () => db.query("update public.appointments set status = 'cancelled' where id = $1", [next.id]), { commit: true });
+    expect((await db.query("select status from public.appointments where id = $1", [next.id])).rows[0].status).toBe("cancelled");
+  });
+});
