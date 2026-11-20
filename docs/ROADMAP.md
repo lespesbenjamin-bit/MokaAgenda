@@ -12,15 +12,26 @@
 - [ ] Recette manuelle sur les vrais projets Supabase et Vercel (voir `docs/SETUP.md` §4)
 - [ ] SMTP personnalisé pour les emails de production
 
-## Sprint 2 — non commencé (attend la validation du Sprint 1)
+## Sprint 2 — Prestations et clientes (développé, en attente de recette)
 
-- Catalogue de prestations (durée, prix, lieu, acompte par prestation)
-- Fichier clientes (CRM)
-- Écran Paramètres (modification après onboarding, CGV)
+- [x] Catégories : création, modification, ordre, masquer, archiver/restaurer
+- [x] Prestations : formulaire complet (durées, tarifs domicile/institut, promo, supplément, TVA, coûts, réservation, acompte), photo
+- [x] Liste : recherche, filtres (catégorie, statut, lieu), tri (nom, prix, durée), duplication, activation, archivage ; tableau sur ordinateur, cartes sur mobile
+- [x] Rentabilité indicative avant déplacement
+- [x] Clientes : liste, recherche (nom, email, téléphone), filtres, tri, fiche à onglets, adresses multiples, préférences, consentements, archivage, doublons
+- [x] Import CSV en 7 étapes, idempotent
+- [x] Démo : 6 catégories, 20 prestations, 25 clientes
+- [x] Services prêts pour l'agenda (devis figé, recherche de cliente)
+- [ ] Recette manuelle sur Supabase/Vercel (voir TEST_REPORT)
+- [ ] Écran Paramètres (modification après onboarding, CGV) — reporté
+
+## Sprint 3 — Agenda professionnel (non commencé, attend validation)
+
+- Table `appointments` avec instantané financier, vues jour/semaine/mois, création d'un rendez-vous (prestation, cliente, lieu, durée, prix)
 
 ## Sprints suivants
 
-- Moteur de réservation (disponibilités serveur, `booking_holds`, anti-conflit, confirmation automatique)
+- Réservation en ligne et moteur de disponibilités (disponibilités serveur, `booking_holds`, anti-conflit, confirmation automatique)
 - Paiements Stripe (acomptes, solde restant, abonnements Solo / Complet), mode test en démo
 - Tournées et temps de trajet
 - Finances et rentabilité

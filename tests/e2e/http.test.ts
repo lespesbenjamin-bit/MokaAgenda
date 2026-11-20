@@ -26,7 +26,17 @@ describe.runIf(MODE !== "noenv")("pages publiques", () => {
 });
 
 describe.runIf(MODE !== "noenv")("protection des pages privées (visiteuse non connectée)", () => {
-  const privatePaths = [...navigation.map((i) => i.href), "/onboarding", "/onboarding?etape=3"];
+  const privatePaths = [
+    ...navigation.map((i) => i.href),
+    "/onboarding",
+    "/onboarding?etape=3",
+    "/prestations/nouvelle",
+    "/prestations/categories",
+    "/prestations/00000000-0000-0000-0000-000000000000",
+    "/clientes/nouvelle",
+    "/clientes/import",
+    "/clientes/00000000-0000-0000-0000-000000000000?onglet=finances",
+  ];
 
   it.each(privatePaths)("%s redirige vers la connexion", async (path) => {
     const res = await get(path);
@@ -92,5 +102,11 @@ describe.runIf(MODE !== "noenv")("sécurité", () => {
       expect(js, src).not.toContain("e2e-service-role-secret");
       expect(js, src).not.toContain("DEMO_USER_PASSWORD");
     }
+  });
+});
+
+describe.runIf(MODE === "production")("outil d'aperçu local", () => {
+  it("n'existe pas en production", async () => {
+    expect((await get("/apercu-dev/prestations")).status).toBe(404);
   });
 });

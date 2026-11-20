@@ -20,6 +20,7 @@
 | `src/server/integrations/supabase/` | clients serveur, proxy, admin |
 | `src/server/demo/` | fixtures, garde-fous, réinitialisation |
 | `src/lib/` | env, routes, validation partagée |
+| `src/lib/domain/` | **règles métier pures et testées** : tarifs, acomptes, marges, doublons clientes, import CSV |
 | `supabase/migrations/` | schéma SQL versionné |
 | `supabase/demo/fixtures.json` | données fictives versionnées |
 
@@ -29,6 +30,20 @@
 2. Connexion → `?next=` validé par `safeNextPath` (anti redirection ouverte).
 3. Proxy : `getClaims()` (JWT vérifié) ; pages privées → `/connexion?next=…`.
 4. Pages privées : `getUser()` (vérifié côté Supabase) puis entreprise ; onboarding incomplet → `/onboarding`.
+
+## Modules du Sprint 2
+
+| Module | Pages | Actions serveur | Données |
+|---|---|---|---|
+| Prestations | `/prestations`, `/prestations/nouvelle`, `/prestations/[id]`, `/prestations/categories` | `server/actions/catalog.ts` | `server/repositories/catalog.ts` |
+| Clientes | `/clientes`, `/clientes/nouvelle`, `/clientes/[id]?onglet=…`, `/clientes/import` | `server/actions/customers.ts`, `customer-import.ts` | `server/repositories/customers.ts` |
+| Préparation agenda | — | — | `server/services/booking-catalog.ts` (prestations réservables, devis figé, recherche de cliente, adresse d'intervention) |
+
+**Calculs** : tous les montants sont en centimes, saisis TTC. La marge indicative = prix HT − consommables − autres coûts directs, **avant déplacement, cotisations et charges fixes** ; elle n'est jamais présentée comme un bénéfice.
+
+**Import CSV** : lecture et correspondance des colonnes dans le navigateur ; vérification, détection des doublons et création **refaites côté serveur**. Aucune fiche existante n'est modifiée ; chaque ligne porte une clé d'import unique (relancer le même fichier ne crée pas de doublon).
+
+**Aperçu local** : `/apercu-dev/[ecran]` affiche les écrans avec les données démo, sans base. Actif seulement hors production et avec `MOKA_UI_PREVIEW=1` (404 sinon, testé).
 
 ## Choix techniques
 

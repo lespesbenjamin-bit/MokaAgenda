@@ -7,7 +7,10 @@ nom existe déjà. Utilisez des projets Supabase **dédiés** à Moka Réservati
 ## 1. Projet Supabase de production
 
 1. Créer un projet `moka-prod` (région Europe, ex. Paris `eu-west-3`).
-2. **SQL Editor** → coller et exécuter `supabase/migrations/20261119000001_sprint1_foundations.sql`, puis `…000002_storage_business_logos.sql` (dans cet ordre).
+2. **SQL Editor** → exécuter, dans l'ordre, chaque fichier de `supabase/migrations/` :
+   1. `20261119000001_sprint1_foundations.sql`
+   2. `20261119000002_storage_business_logos.sql`
+   3. `20261120000001_sprint2_catalog_crm.sql` (Sprint 2)
 3. **Authentication → Sign In / Providers → Email** : *Confirm email* activé ; longueur minimale du mot de passe : 8.
 4. **Authentication → URL Configuration** :
    - Site URL : `https://VOTRE-DOMAINE-PROD`
@@ -61,6 +64,10 @@ Elle refuse de s'exécuter si l'application n'est pas en mode démo, si l'URL Su
 ne correspond pas à `DEMO_SUPABASE_PROJECT_REF`, ou si elle correspond au projet de production.
 La tâche planifiée existe aussi sur le projet de production, où la route répond 404 sans rien faire.
 
+## Variables d'environnement
+
+Le Sprint 2 n'ajoute **aucune** variable en production. `MOKA_UI_PREVIEW=1` sert uniquement en local pour l'aperçu des écrans ; ne jamais la définir sur Vercel.
+
 ## 4. Recette manuelle (à faire une fois configuré)
 
 - [ ] Inscription → email reçu → lien → arrivée sur l'onboarding
@@ -70,3 +77,13 @@ La tâche planifiée existe aussi sur le projet de production, où la route rép
 - [ ] Mot de passe oublié → email → nouveau mot de passe → connexion
 - [ ] Second compte : il ne voit pas l'entreprise du premier
 - [ ] Démo : bouton « Explorer la démo », bandeau visible, chiffres marqués fictifs
+
+### Sprint 2
+- [ ] Créer 2 catégories, les réordonner, en masquer une
+- [ ] Créer une prestation domicile + institut avec tarif domicile différent, coûts et acompte 30 % ; vérifier la marge affichée
+- [ ] Tenter un acompte fixe supérieur au prix → message d'erreur
+- [ ] Dupliquer, désactiver, archiver puis restaurer une prestation
+- [ ] Créer une cliente avec adresse ; en recréer une avec le même téléphone → alerte doublon
+- [ ] Ajouter une adresse travail, la définir principale
+- [ ] Importer un CSV de 3 lignes, puis réimporter le même fichier → « Déjà importée »
+- [ ] Recharger la page : tout est conservé

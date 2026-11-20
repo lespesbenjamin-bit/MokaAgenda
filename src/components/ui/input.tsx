@@ -29,3 +29,27 @@ export function Select({ className, ...props }: React.SelectHTMLAttributes<HTMLS
 export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   return <label className={cn("text-sm font-semibold", className)} {...props} />;
 }
+
+export function Textarea({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      className={cn(
+        "min-h-24 w-full rounded-xl border border-input bg-card px-3.5 py-2.5 text-[15px] transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/20 aria-[invalid=true]:border-destructive",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export function Checkbox({ label, hint, className, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: React.ReactNode; hint?: string }) {
+  return (
+    <label className={cn("flex cursor-pointer items-start gap-3 text-sm", className)}>
+      <input type="checkbox" className="mt-0.5 size-4 shrink-0 accent-[var(--primary)]" {...props} />
+      <span>
+        <span className="font-medium">{label}</span>
+        {hint && <span className="block text-xs text-muted-foreground">{hint}</span>}
+      </span>
+    </label>
+  );
+}

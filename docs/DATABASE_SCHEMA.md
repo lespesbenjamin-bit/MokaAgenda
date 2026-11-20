@@ -49,6 +49,37 @@ Le schéma `private` n'est pas exposé par l'API Supabase.
 
 Le rôle `anon` (visiteur non connecté) n'a aucun droit sur ces tables.
 
-## Tables futures (non créées — Sprint 2 et suivants)
+## Sprint 2 — catalogue et clientes (migration `20261120000001_sprint2_catalog_crm.sql`)
 
-`services` (dont `deposit_type`, `deposit_value`), `customers`, `appointments` (dont `status` `appointment_status`, `deposit_amount_cents`, `balance_due_cents`, `payment_status`), `payments`, `booking_holds` (réservation temporaire anti-conflit), `transport_profiles`, `financial_settings`. Chacune portera `business_id` et les mêmes politiques « membre / propriétaire ».
+| Table | Rôle | Points clés |
+|---|---|---|
+| `service_categories` | catégories de prestations | nom unique parmi les actives ; `position` ; `is_visible` ; archivage |
+| `services` | prestations | durées (prestation, préparation, nettoyage, tampon, délai minimum) ; prix TTC en centimes ; promo ≤ prix ; supplément ; TVA en points de base (0, 550, 1000, 2000) ; acompte (aucun / fixe en centimes / pourcentage 0–100) ; nom unique parmi les actives ; archivage |
+| `service_locations` | lieux proposés (`home`, `salon`) et tarif propre (null = prix de base) | unique (entreprise, prestation, lieu) |
+| `service_costs` | coûts internes (`consumables`, `products`, `other`) | unique (entreprise, prestation, type) ; montants ≥ 0 |
+| `customers` | fiches clientes | prénom ou nom obligatoire ; `email_normalized` et `phone_normalized` calculés par la base ; `contact_preference` ; `source` (manuel, import, réservation) ; `import_key` unique (import idempotent) ; archivage |
+| `customer_addresses` | adresses (domicile, travail, autre) | une seule principale par cliente ; latitude/longitude uniquement si `geocoded_at` est renseigné (aucune coordonnée inventée) |
+| `customer_consents` | consentements marketing par canal (email, SMS) | un par canal ; date et auteur de l'enregistrement |
+
+**Verrous entre entreprises** : les tables liées référencent leur parent par une clé étrangère **composite** `(id, business_id)`. Il est donc impossible, au niveau de la base, de classer une prestation dans la catégorie d'une autre entreprise ou d'ajouter une adresse à la cliente d'une autre entreprise. `business_id` ne peut pas être modifié (déclencheur), `created_by` / `updated_by` sont posés par la base.
+
+**Suppression** : aucune suppression des catégories, prestations et fiches clientes (archivage). Les tarifs par lieu, coûts et adresses peuvent être supprimés.
+
+**Fonction** : `public.duplicate_service(id)` — copie atomique d'une prestation avec ses tarifs et coûts, inactive par défaut, nommée « (copie) », soumise à la RLS de l'appelante.
+
+**Stockage** : bucket `service-photos` (même règles que les logos, propriétaire uniquement).
+
+**Droits Sprint 2**
+
+| Données | Lecture | Écriture |
+|---|---|---|
+| Catalogue (catégories, prestations, tarifs, coûts, photos) | membres | propriétaire |
+| Clientes, adresses, consentements | membres | propriétaire + staff |
+
+## Instantanés financiers des futurs rendez-vous
+
+Préparés côté code (`AppointmentPriceSnapshot` dans `src/lib/domain/pricing.ts`) : prestation, lieu, durées, prix TTC/HT, TVA, supplément, acompte, solde, coûts directs, date. Ils seront enregistrés dans `appointments` au Sprint 3 pour qu'un changement de tarif ne modifie pas l'historique.
+
+## Tables futures (non créées)
+
+`appointments` (dont `status` `appointment_status`, instantané financier, `deposit_amount_cents`, `balance_due_cents`, `payment_status`), `payments`, `booking_holds` (réservation temporaire anti-conflit), `transport_profiles`, `financial_settings`. Chacune portera `business_id`, des clés composites vers les tables existantes et les mêmes politiques.

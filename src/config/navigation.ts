@@ -71,7 +71,7 @@ export const navigation: NavItem[] = [
     label: "Clientes",
     href: "/clientes",
     icon: Users,
-    status: "coming_soon",
+    status: "available",
     summary: "Le fichier de vos clientes et leur historique.",
     planned: ["Fiches clientes", "Historique des rendez-vous", "Notes et préférences"],
     mobilePrimary: true,
@@ -81,7 +81,7 @@ export const navigation: NavItem[] = [
     label: "Prestations",
     href: "/prestations",
     icon: Sparkles,
-    status: "coming_soon",
+    status: "available",
     summary: "Votre carte de soins, durées et tarifs.",
     planned: [
       "Catalogue de prestations",
