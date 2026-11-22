@@ -15,6 +15,10 @@ import { centsToInput, formatDuration, formatEuros } from "@/lib/domain/pricing"
 import { localDate, localMinute, minuteToHHMM } from "@/lib/domain/time";
 import { profitability } from "@/lib/domain/travel";
 import { getAppointmentTravel } from "@/server/repositories/travel";
+import { randomUUID } from "node:crypto";
+import { listAppointmentPayments } from "@/server/repositories/finance";
+import { ManualPaymentForm, RefundForm, ValidatePaymentButtons } from "@/components/finance/finance-forms";
+import { KIND_LABELS, METHOD_LABELS, PAYMENT_STATUS, REFUND_REASON, REFUND_STATUS } from "@/components/finance/payment-labels";
 
 export const metadata: Metadata = { title: "Rendez-vous" };
 
@@ -35,6 +39,12 @@ export default async function AppointmentPage({ params, searchParams }: PageProp
     listCustomerNames(supabase, ctx.business.id, [appt.customer_id]),
     getAppointmentTravel(supabase, ctx.business.id, id),
   ]);
+  const isOwner = ctx.role === "business_owner";
+  const payments = isOwner ? await listAppointmentPayments(supabase, ctx.business.id, id) : [];
+  const refundedOf = (p: (typeof payments)[number], states = ["succeeded"]) => p.refunds.filter((r) => states.includes(r.status)).reduce((s, r) => s + r.amount_cents, 0);
+  const paidNet = payments.filter((p) => p.status === "succeeded").reduce((s, p) => s + p.amount_cents - refundedOf(p), 0);
+  const committed = payments.filter((p) => p.status === "succeeded" || p.status === "pending").reduce((s, p) => s + p.amount_cents - refundedOf(p, ["requested", "pending", "succeeded"]), 0);
+  const remaining = Math.max(0, appt.price_total_cents - committed);
   const items = allItems.filter((i) => i.kind !== "travel_fee");
   const feeItems = allItems.filter((i) => i.kind === "travel_fee");
   const item = items[0];
@@ -227,13 +237,52 @@ export default async function AppointmentPage({ params, searchParams }: PageProp
             <dd className="text-right font-semibold">{formatEuros(appt.price_total_cents)}</dd>
             {appt.deposit_amount_cents > 0 && (
               <>
-                <dt className="text-muted-foreground">Acompte prévu</dt>
+                <dt className="text-muted-foreground">Arrhes / acompte prévus</dt>
                 <dd className="text-right">{formatEuros(appt.deposit_amount_cents)}</dd>
                 <dt className="text-muted-foreground">Solde</dt>
                 <dd className="text-right">{formatEuros(appt.balance_due_cents)}</dd>
               </>
             )}
           </dl>
+          {isOwner && (
+            <div className="flex flex-col gap-3 border-t border-border pt-4">
+              <h3 className="font-bold">Règlements</h3>
+              <dl className="grid grid-cols-[1fr_auto] gap-y-1.5">
+                <dt className="text-muted-foreground">Total</dt>
+                <dd className="text-right">{formatEuros(appt.price_total_cents)}</dd>
+                <dt className="text-muted-foreground">Encaissé (net des remboursements)</dt>
+                <dd className="text-right font-semibold">{formatEuros(paidNet)}</dd>
+                <dt className="text-muted-foreground">Reste à régler</dt>
+                <dd className="text-right font-semibold">{formatEuros(Math.max(0, appt.price_total_cents - paidNet))}</dd>
+              </dl>
+              {payments.length > 0 && (
+                <ul className="flex flex-col gap-2">
+                  {payments.map((p) => {
+                    const refundable = p.amount_cents - refundedOf(p, ["requested", "pending", "succeeded"]);
+                    return (
+                      <li key={p.id} className="rounded-xl bg-surface p-3">
+                        <p className="font-medium">
+                          {formatEuros(p.amount_cents)} · {KIND_LABELS[p.kind]} <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-semibold ${PAYMENT_STATUS[p.status].tone}`}>{PAYMENT_STATUS[p.status].label}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">{METHOD_LABELS[p.method]} · {new Date(p.received_at).toLocaleDateString("fr-FR")}{p.fee_cents != null ? ` · frais ${formatEuros(p.fee_cents)}` : ""}</p>
+                        {p.refunds.map((r) => (
+                          <p key={r.id} className="text-xs">↳ Remboursement {formatEuros(r.amount_cents)} — {REFUND_STATUS[r.status]} ({REFUND_REASON[r.reason]})</p>
+                        ))}
+                        {p.status === "pending" && <div className="mt-2"><ValidatePaymentButtons paymentId={p.id} appointmentId={id} /></div>}
+                        {p.status === "succeeded" && refundable > 0 && <RefundForm paymentId={p.id} appointmentId={id} maxCents={refundable} online={p.method === "card_online"} />}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {remaining > 0 && appt.status !== "cancelled" && (
+                <details className="rounded-xl border border-border p-3" open={payments.length === 0 && appt.status === "completed"}>
+                  <summary className="cursor-pointer font-semibold">Enregistrer un règlement</summary>
+                  <div className="mt-3"><ManualPaymentForm appointmentId={id} remainingCents={remaining} idempotencyKey={randomUUID()} /></div>
+                </details>
+              )}
+            </div>
+          )}
           {feeItems.length > 0 && <p className="text-xs text-muted-foreground">Dont frais de déplacement : {formatEuros(feeItems.reduce((s, i) => s + i.unit_price_cents, 0))}.</p>}
           <div className="border-t border-border pt-4">
             <h3 className="font-bold">Rentabilité indicative</h3>
@@ -270,11 +319,11 @@ export default async function AppointmentPage({ params, searchParams }: PageProp
               <dt className="text-muted-foreground">Rentabilité horaire indicative</dt>
               <dd className="text-right">{profit.hourlyCents != null ? `${formatEuros(profit.hourlyCents)}/h` : "—"}</dd>
             </dl>
-            <p className="mt-2 text-xs text-muted-foreground">Avant charges fixes et cotisations (Sprint 6). Le temps de trajet est valorisé à part, il n&apos;est pas déduit deux fois. {appt.place === "home" && !tripCost ? "Trajet non calculé : coût de déplacement non inclus." : ""}</p>
+            <p className="mt-2 text-xs text-muted-foreground">Avant charges fixes et cotisations (voir Finances). Le temps de trajet est valorisé à part, il n&apos;est pas déduit deux fois. {appt.place === "home" && !tripCost ? "Trajet non calculé : coût de déplacement non inclus." : ""}</p>
           </div>
           {item?.price_overridden && <p className="text-xs text-muted-foreground">Prix ajusté pour ce rendez-vous (catalogue : {formatEuros(item.catalog_price_cents)}).</p>}
           {archivedService && <p className="text-xs text-muted-foreground">Cette prestation a depuis été archivée ou désactivée dans votre catalogue.</p>}
-          <p className="text-xs text-muted-foreground">Prix et durée sont figés à la réservation : un changement de tarif ultérieur ne modifie pas ce rendez-vous. Le paiement en ligne arrivera dans un prochain sprint.</p>
+          <p className="text-xs text-muted-foreground">Prix et durée sont figés à la réservation : un changement de tarif ultérieur ne modifie pas ce rendez-vous.</p>
         </aside>
       </div>
     </>

@@ -13,6 +13,8 @@ import { createSupabaseServerClient } from "@/server/integrations/supabase/serve
 import { getCustomer, listAddresses, listConsents } from "@/server/repositories/customers";
 import { displayName, initials } from "@/lib/domain/customers";
 import { cn } from "@/lib/utils";
+import { formatEuros } from "@/lib/domain/pricing";
+import { loadCustomerFinance } from "@/server/services/finance";
 
 export const metadata: Metadata = { title: "Fiche cliente" };
 
@@ -43,6 +45,7 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
     tab === "consentements" ? listConsents(supabase, ctx.business.id, id) : Promise.resolve([]),
   ]);
   const archived = Boolean(customer.archived_at);
+  const fin = tab === "finances" ? await loadCustomerFinance(id) : null;
 
   return (
     <>
@@ -156,15 +159,30 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
 
       {tab === "finances" && (
         <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-            {["Rendez-vous", "Dernière visite", "Total dépensé", "Panier moyen", "Fréquence"].map((label) => (
-              <div key={label} className="rounded-xl border border-dashed border-line-strong bg-card p-4">
-                <p className="text-sm font-medium">{label}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Indisponible</p>
+          {!fin ? (
+            <Unavailable icon={Wallet} title="Indicateurs réservés" text="Les données financières des clientes ne sont visibles que par la propriétaire du compte." />
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                {[
+                  ["Rendez-vous terminés", String(fin.completedCount)],
+                  ["Dernière visite", fin.lastVisit ? dateFmt.format(new Date(fin.lastVisit)) : "—"],
+                  ["CA historique (TTC)", formatEuros(fin.revenueTtc)],
+                  ["Panier moyen (TTC)", fin.avgBasketTtc != null ? formatEuros(fin.avgBasketTtc) : "—"],
+                  ["Fréquence", fin.avgDaysBetweenVisits != null ? `tous les ${fin.avgDaysBetweenVisits} jours en moyenne` : "—"],
+                  ["Marge contributive estimée", formatEuros(fin.estimatedMargin)],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl border border-border bg-card p-4">
+                    <p className="text-sm font-medium text-muted-foreground">{label}</p>
+                    <p className="mt-1 font-display text-xl font-bold">{value}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <Unavailable icon={Wallet} title="Indicateurs de fidélité" text="Ces indicateurs seront calculés à partir des rendez-vous réels, dès que l'agenda et les encaissements seront disponibles. Aucun chiffre n'est estimé." />
+              <p className="text-xs text-muted-foreground">
+                Calculé uniquement sur les rendez-vous terminés (prix figés à la réservation) ; les arrhes payées ne comptent pas comme une prestation supplémentaire. {fin.upcomingCount > 0 ? `${fin.upcomingCount} rendez-vous à venir non comptés. ` : ""}Marge = CA HT − consommables, produits, coûts directs et coût des trajets (estimé).
+              </p>
+            </>
+          )}
         </div>
       )}
 

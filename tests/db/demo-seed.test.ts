@@ -6,11 +6,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Client } from "pg";
 import { as, connect, createUser } from "./helpers";
-import { DEMO_TABLE_ORDER, buildDemoRows, rowsByTable } from "@/server/demo/seed";
+import { DEMO_TABLE_ORDER, buildDemoRows, buildFinanceDemoRows, rowsByTable } from "@/server/demo/seed";
+import { summarize } from "@/lib/domain/finance";
 
 let db: Client;
 let owner: string;
 let biz: string;
+let demo: ReturnType<typeof buildDemoRows>;
 
 beforeAll(async () => {
   db = await connect();
@@ -21,7 +23,8 @@ afterAll(async () => db?.end());
 
 describe("données de démonstration", () => {
   it("s'insèrent sans erreur dans toutes les tables (contraintes + RLS)", async () => {
-    const tables = rowsByTable(buildDemoRows(biz));
+    demo = buildDemoRows(biz);
+    const tables = rowsByTable(demo);
     await as(
       db,
       owner,
@@ -228,5 +231,41 @@ describe("déplacements fictifs (Sprint 5)", () => {
     expect(streetOnly("12 rue des Fleurs (adresse fictive)")).toBe("rue des Fleurs");
     expect(streetOnly("5 bis chemin des Vignes")).toBe("chemin des Vignes");
     expect(streetOnly("Place du Capitole (lieu public, adresse fictive pour la démo)")).toBe("Place du Capitole");
+  });
+});
+
+describe("finances fictives (Sprint 6)", () => {
+  it("paiements, remboursements, virements et charges respectent les contraintes et le registre", async () => {
+    const fin = buildFinanceDemoRows(demo, biz);
+    // Comme la réinitialisation réelle (clé serveur de démo) : insertion directe, contrôles de la base actifs.
+    for (const r of fin.payments) await insertRow("payments", r);
+    for (const r of fin.refunds) await insertRow("refunds", r);
+    for (const r of fin.payouts) await insertRow("payouts", r);
+    await as(db, owner, async () => {
+      for (const r of fin.fixed_expenses) await insertRow("fixed_expenses", r);
+      await db.query("update public.financial_settings set activity_regime = $2, vat_status = $3, contribution_rate_bps = $4 where business_id = $1", [biz, fin.settings.activity_regime, fin.settings.vat_status, fin.settings.contribution_rate_bps]);
+    }, { commit: true });
+    const n = async (sql: string) => Number((await db.query(sql, [biz])).rows[0].n);
+    expect(await n("select count(*) as n from public.payments where business_id = $1 and method = 'card_online' and stripe_payment_intent_id like 'pi_demo_%'")).toBeGreaterThan(0);
+    expect(await n("select count(*) as n from public.payments where business_id = $1 and method = 'card_online' and stripe_payment_intent_id not like 'pi_demo_%'")).toBe(0);
+    expect(await n("select count(*) as n from public.payments where business_id = $1 and status = 'pending'")).toBeGreaterThanOrEqual(0);
+    expect(await n("select count(*) as n from public.refunds where business_id = $1")).toBeGreaterThan(0);
+    expect(await n("select count(*) as n from public.fixed_expenses where business_id = $1")).toBe(5);
+    // Aucun rendez-vous payé au-delà de son prix ; statut recalculé par la base.
+    expect(await n(`select count(*) as n from public.appointments a where a.business_id = $1 and
+      (select coalesce(sum(amount_cents), 0) from public.payments p where p.appointment_id = a.id and p.status = 'succeeded') > a.price_total_cents`)).toBe(0);
+    expect(await n("select count(*) as n from public.appointments where business_id = $1 and payment_status = 'paid'")).toBeGreaterThan(0);
+    // Un tableau de bord cohérent : réalisé > 0, encaissé > 0, des soldes restent à encaisser.
+    const s = summarize({
+      period: { from: new Date(Date.now() - 60 * 86_400_000), to: new Date(Date.now() + 30 * 86_400_000) },
+      now: new Date(),
+      zone: "Europe/Paris",
+      settings: { vatStatus: "franchise", contributionRateBps: 2120, contributionBase: "revenue", taxProvisionRateBps: 170, taxProvisionBase: "revenue" },
+      appointments: [],
+      payments: fin.payments.map((p) => ({ id: p.id as string, appointmentId: p.appointment_id as string, kind: p.kind as "deposit", method: p.method as string, status: p.status as "succeeded", amountCents: p.amount_cents as number, feeCents: (p.fee_cents as number) ?? null, receivedAt: p.received_at as string })),
+      refunds: [], payouts: [], expenses: [], adjustments: [], categories: {},
+    });
+    expect(s.collections.total).toBeGreaterThan(0);
+    expect(s.collections.stripeFees).toBeGreaterThan(0);
   });
 });

@@ -65,14 +65,18 @@
 - [ ] Exécuter la migration, installer la clé, recette manuelle
 - Plus tard : trafic en temps réel (adaptateur Google Routes), recalcul du trajet réel depuis le rendez-vous précédent dans l'instantané, optimisation > 7 arrêts
 
-## Sprint 6 — Paiements Stripe et finances (non commencé, attend validation)
+## Sprint 6 — Finances et arrhes Stripe (développé, en attente de SQL + Stripe + recette)
 
+- [x] Tableau de bord financier (périodes, CA réalisé/prévisionnel, encaissements, charges, résultats, évolution, répartitions)
+- [x] Rentabilité par prestation (minimum 5 réalisations pour les classements) et par cliente
+- [x] Paramètres financiers (régime, TVA, cotisations et provision paramétrables), charges fixes proratisées, objectifs + simulation
+- [x] Stripe Connect (paiement direct, compte de la professionnelle, 0 % de commission Moka), onboarding, statut
+- [x] Arrhes / acompte en ligne : réservation temporaire, Checkout, webhook signé et idempotent, paiement tardif, remboursement automatique
+- [x] Règlements manuels validés explicitement, remboursements, contestations, virements, ajustements traçables
+- [x] Exports CSV ; démo financière fictive
+- [ ] Exécuter la migration, configurer Stripe (test), premier paiement test réel, recette
+- Plus tard : migration vers l'API Accounts v2 de Stripe (recommandée par Stripe ; v1 + propriétés de contrôleur utilisée ici, toujours supportée), composants Stripe intégrés (bannière de notifications), paiement du solde en ligne
 
-- Acomptes en ligne : `booking_holds` pendant le paiement, statut « en attente » puis « confirmé » (tables et états prêts)
+## Sprint 7 (non commencé, attend validation)
 
-## Sprints suivants
-
-- Paiements Stripe (solde restant, abonnements Solo / Complet), mode test en démo
-- Rappels automatiques par email (colonne `scheduled_for` prête)
-- Finances et rentabilité
-- Boutique
+- Abonnements Moka (Solo / Complet), rappels automatiques par email (colonne `scheduled_for` prête), boutique — selon le brief du Sprint 7

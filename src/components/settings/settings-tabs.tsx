@@ -5,6 +5,8 @@ const TABS = [
   { href: "/parametres", label: "Réservation en ligne" },
   { href: "/parametres/deplacements", label: "Déplacements" },
   { href: "/parametres/zones", label: "Zones" },
+  { href: "/parametres/paiements", label: "Paiement en ligne" },
+  { href: "/parametres/finances", label: "Finances" },
 ];
 
 export function SettingsTabs({ active }: { active: string }) {

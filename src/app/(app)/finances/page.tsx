@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { getNavItem } from "@/config/navigation";
-import { ComingSoon } from "@/components/modules/coming-soon";
+import { FinanceDashboardView } from "@/components/finance/dashboard-view";
+import { loadDashboard } from "@/server/services/finance";
 
-const item = getNavItem("finances");
+export const metadata: Metadata = { title: "Finances" };
+export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: item.label };
-
-export default function Page() {
-  return <ComingSoon item={item} />;
+export default async function FinancesPage({ searchParams }: PageProps<"/finances">) {
+  const { sel, label, summary, series } = await loadDashboard(await searchParams);
+  return <FinanceDashboardView sel={sel} label={label} summary={summary} series={series} />;
 }

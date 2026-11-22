@@ -16,6 +16,9 @@ import {
   DEPOSIT_UNAVAILABLE_MESSAGE,
   PLACE_LABELS,
   depositDescription,
+  depositCentsFor,
+  defaultDepositTerms,
+  DEPOSIT_KIND_LABEL,
   formatAddress,
   lowestPrice,
   priceFor,
@@ -124,10 +127,14 @@ export function BookingWizard({
     return out;
   }, [page]);
 
+  // Arrhes / acompte payés en ligne (Sprint 6) : seulement si le compte Stripe de la professionnelle est actif.
+  const payOnline = Boolean(page.payment?.online);
+  const depositKind = page.payment?.deposit_kind ?? "arrhes";
+
   const timeFmt = new Intl.DateTimeFormat("fr-FR", { timeZone: tz, weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 
   function chooseService(s: PublicService) {
-    if (requiresDeposit(s)) return;
+    if (requiresDeposit(s) && !payOnline) return;
     setServiceId(s.id);
     setStartsAt(null);
     setAddressCheck(null);
@@ -165,6 +172,9 @@ export function BookingWizard({
     setContact((c) => ({ ...c, [k]: e.target.type === "checkbox" ? (e.target as HTMLInputElement).checked : e.target.value }));
 
   const price = service && place ? priceFor(service, place) : null;
+  const serviceNow = place === "home" && travelOn && addressCheck ? addressCheck.serviceCents : (price ?? 0);
+  const totalNow = place === "home" && travelOn && addressCheck ? addressCheck.serviceCents + addressCheck.feeCents : (price ?? 0);
+  const depositNow = service && payOnline && requiresDeposit(service) ? depositCentsFor(service, serviceNow) : 0;
   const noticeHours = page.settings.cancellation_notice_hours;
 
   return (
@@ -206,7 +216,7 @@ export function BookingWizard({
                 </div>
               )}
               {g.services.map((s) => {
-                const deposit = requiresDeposit(s);
+                const deposit = requiresDeposit(s) && !payOnline;
                 const many = s.places.length > 1 && new Set(s.places.map((p) => p.price_cents)).size > 1;
                 return (
                   <button
@@ -247,9 +257,12 @@ export function BookingWizard({
                         <span className="mt-1 flex items-start gap-1.5 rounded-lg bg-secondary px-2.5 py-2 text-xs text-foreground">
                           <Lock className="mt-0.5 size-3.5 shrink-0" />
                           <span>
-                            <strong>{depositDescription(s)}.</strong> {DEPOSIT_UNAVAILABLE_MESSAGE}
+                            <strong>{depositDescription(s, depositKind)}.</strong> {DEPOSIT_UNAVAILABLE_MESSAGE}
                           </span>
                         </span>
+                      )}
+                      {!deposit && requiresDeposit(s) && (
+                        <span className="text-xs font-medium text-foreground">{depositDescription(s, depositKind)} à régler en ligne à la réservation</span>
                       )}
                     </span>
                   </button>
@@ -449,16 +462,30 @@ export function BookingWizard({
               ) : (
                 <SummaryRow label="Prix" value={price != null ? formatEuros(price) : "—"} strong />
               )}
-              <SummaryRow label="Acompte" value="Aucun acompte demandé" />
+              {depositNow > 0 ? (
+                <>
+                  <SummaryRow label={`${DEPOSIT_KIND_LABEL[depositKind]} à payer maintenant`} value={formatEuros(depositNow)} strong />
+                  <SummaryRow label="Reste à régler sur place" value={formatEuros(totalNow - depositNow)} />
+                </>
+              ) : (
+                <SummaryRow label="Acompte" value="Aucun paiement demandé à la réservation" />
+              )}
               <SummaryRow label="Annulation" value={page.settings.customer_can_cancel ? (noticeHours > 0 ? `Possible en ligne jusqu'à ${noticeHours} h avant` : "Possible en ligne jusqu'au rendez-vous") : "Contactez la professionnelle"} />
               <SummaryRow label="Vos coordonnées" value={`${contact.first_name} ${contact.last_name} · ${contact.email} · ${contact.phone}`} />
             </dl>
             {page.settings.cancellation_policy && <p className="whitespace-pre-line text-xs text-muted-foreground">{page.settings.cancellation_policy}</p>}
-            {isDemo && <FormAlert type="info">Démonstration : la réservation sera enregistrée dans l&apos;agenda de démonstration et la confirmation sera simulée (aucun email réel).</FormAlert>}
-            <SubmitButton size="lg" pendingLabel="Confirmation en cours…">
-              <Check /> Confirmer le rendez-vous
+            {depositNow > 0 && (
+              <p className="whitespace-pre-line rounded-xl bg-secondary p-3 text-xs text-foreground">{page.payment?.deposit_terms || defaultDepositTerms(depositKind)}</p>
+            )}
+            {isDemo && <FormAlert type="info">Démonstration : la réservation sera enregistrée dans l&apos;agenda de démonstration et la confirmation sera simulée (aucun email réel){depositNow > 0 ? " ; le paiement passe par Stripe en mode test (carte de test 4242 4242 4242 4242, aucun débit réel)" : ""}.</FormAlert>}
+            <SubmitButton size="lg" pendingLabel={depositNow > 0 ? "Ouverture du paiement sécurisé…" : "Confirmation en cours…"}>
+              {depositNow > 0 ? <><Lock /> Payer {formatEuros(depositNow)} et réserver</> : <><Check /> Confirmer le rendez-vous</>}
             </SubmitButton>
-            <p className="text-center text-xs text-muted-foreground">Le créneau est vérifié une dernière fois au moment de la confirmation.</p>
+            <p className="text-center text-xs text-muted-foreground">
+              {depositNow > 0
+                ? "Paiement sécurisé par Stripe : le créneau est réservé 35 minutes pendant le paiement et le rendez-vous n'est confirmé qu'après validation du paiement."
+                : "Le créneau est vérifié une dernière fois au moment de la confirmation."}
+            </p>
           </section>
         )}
       </form>

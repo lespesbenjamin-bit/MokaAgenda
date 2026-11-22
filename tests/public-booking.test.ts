@@ -3,6 +3,8 @@ import {
   bookingDays,
   canCustomerChange,
   depositDescription,
+  depositCentsFor,
+  defaultDepositTerms,
   isSlotError,
   publicSlots,
   requiresDeposit,
@@ -72,12 +74,16 @@ describe("créneaux publics (même moteur que l'agenda)", () => {
 });
 
 describe("acomptes et règles d'annulation", () => {
-  it("une prestation avec acompte n'est pas réservable en ligne (Sprint 6)", () => {
+  it("arrhes / acompte : détection, libellé et montant (même formule que la base)", () => {
     expect(requiresDeposit({ deposit_type: "none", deposit_value: 0 })).toBe(false);
     expect(requiresDeposit({ deposit_type: "percentage", deposit_value: 30 })).toBe(true);
     expect(requiresDeposit({ deposit_type: "fixed", deposit_value: 0 })).toBe(false);
-    expect(depositDescription({ deposit_type: "fixed", deposit_value: 2000 })).toBe("Acompte de 20,00 €");
-    expect(depositDescription({ deposit_type: "percentage", deposit_value: 30 })).toBe("Acompte de 30 %");
+    expect(depositDescription({ deposit_type: "fixed", deposit_value: 2000 }, "acompte")).toBe("Acompte de 20,00 €");
+    expect(depositDescription({ deposit_type: "percentage", deposit_value: 30 })).toBe("Arrhes de 30 %");
+    expect(depositCentsFor({ deposit_type: "percentage", deposit_value: 30 }, 6000)).toBe(1800);
+    expect(depositCentsFor({ deposit_type: "percentage", deposit_value: 33 }, 4550)).toBe(1502); // 1501,5 → 1502
+    expect(depositCentsFor({ deposit_type: "fixed", deposit_value: 9000 }, 6000)).toBe(6000);
+    expect(defaultDepositTerms("arrhes")).toContain("L214-1");
   });
 
   it("autorise l'annulation jusqu'au délai, selon les règles de la professionnelle", () => {

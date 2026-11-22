@@ -90,9 +90,9 @@ export const navigation: NavItem[] = [
     label: "Finances",
     href: "/finances",
     icon: Wallet,
-    status: "coming_soon",
-    summary: "Chiffre d'affaires, acomptes et soldes restants.",
-    planned: ["Suivi des acomptes et soldes", "Chiffre d'affaires", "Rentabilité des déplacements"],
+    status: "available",
+    summary: "Chiffre d'affaires, encaissements, charges, marges et objectifs.",
+    planned: [],
     mobilePrimary: false,
   },
   {
